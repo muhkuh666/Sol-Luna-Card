@@ -1,18 +1,27 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
-  upload:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Upload card to release
+      - name: Create GitHub release with card file
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/sol-luna-card.js --clobber
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/sol-luna-card.js --clobber
+          else
+            gh release create "$TAG" dist/sol-luna-card.js \
+              --title "$TAG" \
+              --notes "Sol & Luna Card $TAG – Installation über HACS oder manuell: sol-luna-card.js nach /config/www/ kopieren."
+          fi
