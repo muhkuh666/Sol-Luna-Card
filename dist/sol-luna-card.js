@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE                                                             *
@@ -179,6 +179,9 @@ const STR = {
     azimuth: 'Azimut', elevation: 'Höhe',
     aurora: 'Polarlicht', visibility: 'Sichtbarkeit', kp: 'Kp-Index', alert: 'Warnung', alertOn: 'Warnung aktiv',
     on: 'An', off: 'Aus', days3: ['Heute', 'Morgen', 'Übermorgen'],
+    maxKp: 'Max. Kp', chanceGood: 'Polarlicht am Nordhorizont möglich', chanceMaybe: 'evtl. mit Kamera sichtbar',
+    chanceLow: (n) => `hier unwahrscheinlich (ab ca. Kp ${n})`, source: 'Quelle', loading: 'Lade NOAA-Daten …',
+    noaaError: 'NOAA-Daten nicht erreichbar',
     levels: { quiet: 'Ruhig', unsettled: 'Unruhig', active: 'Aktiv', 'minor storm': 'Schwacher Sturm', 'moderate storm': 'Mäßiger Sturm', 'strong storm': 'Starker Sturm', 'severe storm': 'Schwerer Sturm', 'extreme storm': 'Extremer Sturm', storm: 'Sturm' },
     kpWords: ['ruhig', 'ruhig', 'ruhig', 'unruhig', 'aktiv', 'Sturm G1', 'Sturm G2', 'Sturm G3', 'Sturm G4', 'Sturm G5'],
   },
@@ -202,7 +205,10 @@ const STR = {
     azimuth: 'Azimuth', elevation: 'Elevation',
     aurora: 'Aurora', visibility: 'Visibility', kp: 'Kp index', alert: 'Alert', alertOn: 'Alert active',
     on: 'On', off: 'Off', days3: ['Today', 'Tomorrow', 'Day after'],
-    levels: {},
+    maxKp: 'Max Kp', chanceGood: 'aurora possible on the horizon', chanceMaybe: 'maybe visible on camera',
+    chanceLow: (n) => `unlikely here (needs ~Kp ${n})`, source: 'Source', loading: 'Loading NOAA data …',
+    noaaError: 'NOAA data unavailable',
+    levels: { quiet: 'Quiet', unsettled: 'Unsettled', active: 'Active', 'minor storm': 'Minor storm', 'moderate storm': 'Moderate storm', 'strong storm': 'Strong storm', 'severe storm': 'Severe storm', 'extreme storm': 'Extreme storm' },
     kpWords: ['quiet', 'quiet', 'quiet', 'unsettled', 'active', 'storm G1', 'storm G2', 'storm G3', 'storm G4', 'storm G5'],
   },
 };
@@ -252,6 +258,10 @@ const DEFAULTS = {
   aurora_tomorrow_text_entity: '',
   aurora_day_after_entity: '',
   aurora_day_after_text_entity: '',
+  aurora_source: 'auto',       // auto | entities | internet
+  aurora_ovation: true,        // Sichtbarkeit aus NOAA-OVATION-Modell laden (~0,9 MB)
+  aurora_threshold: 50,        // Warnung ab dieser Sichtbarkeit (%)
+  aurora_update_minutes: 15,
   latitude: undefined,
   longitude: undefined,
   time_zone: undefined,
@@ -325,6 +335,54 @@ function auroraLevel(s) {
 const AURORA_LEVEL_COLORS = ['var(--slc-sub)', '#e8d44d', '#4DFFB0', '#ff9f43', '#ff5c7a'];
 function kpColor(kp) { return kp >= 7 ? '#ff5c7a' : kp >= 5 ? '#ff9f43' : kp >= 4 ? '#e8d44d' : '#4DFFB0'; }
 
+/* ---------- NOAA SWPC (Polarlicht aus dem Internet) ------------------ */
+const NOAA_URLS = {
+  kp: 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json',
+  ov: 'https://services.swpc.noaa.gov/json/ovation_aurora_latest.json',
+};
+const NOAA = { kp: {}, ov: {}, listeners: new Set() };
+/** Normalisiert alte (Kopfzeile + Arrays) und neue (Objekte) Kp-Formate */
+function parseKpRows(json) {
+  if (!Array.isArray(json) || !json.length) return [];
+  let rows = json;
+  if (Array.isArray(json[0])) {
+    const head = json[0].map((h) => String(h).toLowerCase());
+    rows = json.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i]])));
+  }
+  return rows.map((r) => {
+    const o = {};
+    for (const [k, v] of Object.entries(r)) o[String(k).toLowerCase()] = v;
+    const kpKey = ['kp', 'kp_index', 'estimated_kp', 'kp_value'].find((k) => o[k] != null);
+    let tt = String(o.time_tag || o.time || '').trim();
+    if (tt && !/([zZ]|[+-]\d\d:?\d\d)$/.test(tt)) tt = tt.replace(' ', 'T') + 'Z';
+    return { t: Date.parse(tt), kp: parseFloat(o[kpKey]), type: String(o.observed || o.type || '').toLowerCase() };
+  }).filter((r) => Number.isFinite(r.t) && Number.isFinite(r.kp)).sort((a, b) => a.t - b.t);
+}
+function noaaGet(key, maxAgeMs) {
+  const slot = NOAA[key];
+  const fresh = slot.ts && Date.now() - slot.ts < maxAgeMs;
+  if (fresh || slot.loading) return;
+  slot.loading = true;
+  fetch(NOAA_URLS[key], { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then((json) => {
+      if (key === 'kp') slot.data = parseKpRows(json);
+      else {
+        const grid = new Map();
+        for (const c of json.coordinates || []) grid.set(`${Math.round(c[0]) % 360},${Math.round(c[1])}`, c[2]);
+        slot.data = { grid, time: Date.parse(json['Forecast Time'] || json['Observation Time'] || '') };
+      }
+      slot.ts = Date.now(); slot.error = null;
+    })
+    .catch((e) => { slot.error = String(e.message || e); slot.ts = Date.now() - maxAgeMs + 120000; })
+    .finally(() => { slot.loading = false; NOAA.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); });
+}
+function kpLevelKey(kp) {
+  return kp < 3 ? 'quiet' : kp < 4 ? 'unsettled' : kp < 5 ? 'active' : kp < 6 ? 'minor storm' : kp < 7 ? 'moderate storm' : kp < 8 ? 'strong storm' : kp < 9 ? 'severe storm' : 'extreme storm';
+}
+/** Faustregel: benötigter Kp für Polarlicht am Horizont bei geogr. Breite (Europa) */
+const kpNeeded = (lat) => clamp(Math.round((66 - Math.abs(lat)) / 2), 1, 9);
+
 let _uid = 0;
 const ICON_PATHS = {};
 
@@ -395,8 +453,12 @@ class SolLunaCard extends HTMLElement {
     if (first || key !== this._hassKey || ak !== this._auroraK) { this._hassKey = key; this._auroraK = ak; this._render(); }
   }
 
-  connectedCallback() { this._restartTimer(); }
-  disconnectedCallback() { clearInterval(this._timer); this._timer = null; }
+  connectedCallback() {
+    this._restartTimer();
+    this._noaaListener = this._noaaListener || (() => { if (this._usesInternet) this._render(); });
+    NOAA.listeners.add(this._noaaListener);
+  }
+  disconnectedCallback() { clearInterval(this._timer); this._timer = null; NOAA.listeners.delete(this._noaaListener); }
 
   _restartTimer() {
     clearInterval(this._timer);
@@ -550,7 +612,7 @@ class SolLunaCard extends HTMLElement {
     const sunTimes = c.show_sun_times ? this._sunTimesHtml(D, t, F) : '';
     const moon = c.show_moon ? this._moonHtml(D, t, F, moonRot) : '';
     const footer = (c.show_position || c.show_season) ? this._footerHtml(D, t, F) : '';
-    const A = this._auroraData();
+    const A = this._auroraData(D, t, F);
     const aurora = A ? this._auroraHtml(A, t, F) : '';
     const auroraSky = A && (sky || mode === 'dark') && c.aurora_effect ? this._auroraSkyHtml(this._auroraIntensity(A) * (sky ? 1 : 0.7), night) : '';
 
@@ -568,6 +630,10 @@ class SolLunaCard extends HTMLElement {
         <div class="content">${header}${graph}${sunTimes}${moon}${aurora}${footer}</div>
       </ha-card>`;
     this.shadowRoot.querySelectorAll('[data-entity]').forEach((el) => el.addEventListener('click', () => {
+      if (el.dataset.entity.startsWith('noaa:')) {
+        window.open(el.dataset.entity === 'noaa:ov' ? 'https://www.swpc.noaa.gov/products/aurora-30-minute-forecast' : 'https://www.swpc.noaa.gov/products/planetary-k-index', '_blank', 'noopener');
+        return;
+      }
       this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: el.dataset.entity }, bubbles: true, composed: true }));
     }));
   }
@@ -623,8 +689,13 @@ class SolLunaCard extends HTMLElement {
     return [e.vis, e.alert, e.kp, ...e.days.flatMap((d) => [d.level, d.text])].map((id) => (id ? st[id]?.state : '')).join('|');
   }
 
-  _auroraData() {
-    const e = this._auroraEntities();
+  _auroraData(D, t, F) {
+    const c = this._config;
+    this._usesInternet = false;
+    if (!c.show_aurora) return null;
+    const ents = c.aurora_source === 'internet' ? null : this._auroraEntities();
+    if (!ents && c.aurora_source !== 'entities') { this._usesInternet = true; return this._auroraInternet(D, t, F); }
+    const e = ents;
     if (!e) return null;
     const st = this._hass.states;
     const n = (id) => { const v = parseFloat(id ? st[id]?.state : NaN); return Number.isFinite(v) ? v : null; };
@@ -634,6 +705,44 @@ class SolLunaCard extends HTMLElement {
       alert: e.alert ? st[e.alert]?.state === 'on' : null,
       kp: n(e.kp),
       days: e.days.map((d) => ({ ...d, levelState: d.level ? st[d.level]?.state : null, textState: d.text ? st[d.text]?.state : null })),
+    };
+  }
+
+  _auroraInternet(D, t, F) {
+    const c = this._config;
+    const maxAge = Math.max(5, Number(c.aurora_update_minutes) || 15) * 60000;
+    noaaGet('kp', maxAge);
+    if (c.aurora_ovation) noaaGet('ov', maxAge);
+    const kpRows = NOAA.kp.data || [];
+    const ov = c.aurora_ovation ? NOAA.ov.data : null;
+    const need = kpNeeded(D.lat);
+    // aktueller Kp: letzter beobachteter/geschätzter Wert vor jetzt
+    const past = kpRows.filter((r) => r.t <= D.now && r.type !== 'predicted');
+    const kpNow = past.length ? past[past.length - 1].kp : (kpRows.filter((r) => r.t <= D.now).pop()?.kp ?? null);
+    // Sichtbarkeit am Standort (OVATION, nächster Gitterpunkt)
+    let vis = null;
+    if (ov) {
+      const lon = ((Math.round(D.lng) % 360) + 360) % 360, lat = Math.round(D.lat);
+      const v = ov.grid.get(`${lon},${lat}`);
+      vis = v == null ? 0 : v;
+    }
+    const alert = (vis != null && vis >= (Number(c.aurora_threshold) || 50)) || (kpNow != null && kpNow >= need);
+    // 3-Tage-Vorhersage: maximaler Kp pro Kalendertag (lokale Zeit)
+    const d0 = localMidnight(D.now, D.tz);
+    const days = [0, 1, 2].map((i) => {
+      const a = localMidnight(d0 + i * DAY_MS + 3 * 3600000, D.tz), b = localMidnight(a + 27 * 3600000, D.tz);
+      const r = kpRows.filter((x) => x.t >= a && x.t < b);
+      if (!r.length) return { level: null, text: null };
+      const mx = Math.max(...r.map((x) => x.kp));
+      const chance = mx >= need ? t.chanceGood : mx >= need - 1.5 ? t.chanceMaybe : t.chanceLow(need);
+      return { level: 'noaa:kp', text: 'noaa:kp', levelState: kpLevelKey(mx), textState: `${t.maxKp} ${F.num(mx, 1)} · ${chance}` };
+    });
+    const loading = !NOAA.kp.data && !NOAA.kp.error;
+    return {
+      e: { vis: ov || c.aurora_ovation ? 'noaa:ov' : null, alert: 'noaa:alert', kp: 'noaa:kp', days },
+      vis, alert, kp: kpNow, days, internet: true, loading,
+      error: NOAA.kp.error && !NOAA.kp.data ? NOAA.kp.error : null,
+      updated: NOAA.kp.ts || null,
     };
   }
 
@@ -683,12 +792,14 @@ class SolLunaCard extends HTMLElement {
         ${d.text ? `<div class="atext" title="${esc(d.textState)}">${esc(tr(d.textState))}</div>` : ''}
       </div>`;
     }).join('')}</div>` : '';
+    const src = A.internet ? `<div class="asrc">${A.error ? `⚠ ${esc(t.noaaError)}` : A.loading ? esc(t.loading) : `${esc(t.source)}: NOAA SWPC${A.updated ? ` · ${F.time(A.updated)}` : ''}`}</div>` : '';
     return `
     <div class="aurorabox">
       <div class="ahead"><ha-icon icon="mdi:star-shooting"></ha-icon><span>${esc(t.aurora)}</span>
         ${A.alert ? `<span class="badge alertbadge">${esc(t.alertOn)}</span>` : ''}</div>
       ${stats.length ? `<div class="astats">${stats.join('')}</div>` : ''}
       ${days}
+      ${src}
     </div>`;
   }
 
@@ -1021,6 +1132,7 @@ class SolLunaCard extends HTMLElement {
       color:var(--chip); background:color-mix(in srgb, var(--chip) 20%, transparent); border:1px solid color-mix(in srgb, var(--chip) 55%, transparent); }
     .atext { font-size:.74em; color:var(--slc-sub); margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
     .alertbadge { background:#ff5c7a; color:#fff; margin-left:auto; }
+    .asrc { font-size:.68em; color:var(--slc-sub); text-align:right; margin-top:6px; opacity:.85; }
     .aurorasky { position:absolute; left:-10%; right:-10%; top:0; height:55%; pointer-events:none; mix-blend-mode:screen; filter:blur(14px); }
     .aurorasky i { position:absolute; left:0; right:0; height:60%; border-radius:50%;
       background:linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--slc-aurora) 70%, transparent) 45%, transparent 100%); }
@@ -1067,6 +1179,8 @@ const ED_STR = {
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
     auroraHint: 'Leer lassen = automatisch erkennen (Entitäten mit „aurora“ bzw. „k_index“ im Namen).',
+    aurora_source: 'Datenquelle', as_auto: 'Automatisch (Entitäten, sonst Internet)', as_entities: 'Nur Home-Assistant-Entitäten', as_internet: 'Internet (NOAA SWPC)',
+    aurora_ovation: 'Sichtbarkeit aus NOAA-OVATION-Modell laden (~0,9 MB)', aurora_threshold: 'Warnung ab Sichtbarkeit (%)', aurora_update_minutes: 'Internet-Abruf alle (Minuten)',
   },
   en: {
     general: 'General', display: 'Display', design: 'Design', colors: 'Colors', location: 'Location (optional)',
@@ -1090,6 +1204,8 @@ const ED_STR = {
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
     auroraHint: 'Leave empty = auto-detect (entities with “aurora” or “k_index” in their name).',
+    aurora_source: 'Data source', as_auto: 'Automatic (entities, else internet)', as_entities: 'Home Assistant entities only', as_internet: 'Internet (NOAA SWPC)',
+    aurora_ovation: 'Load visibility from NOAA OVATION model (~0.9 MB)', aurora_threshold: 'Alert from visibility (%)', aurora_update_minutes: 'Internet refresh every (minutes)',
   },
 };
 
@@ -1158,7 +1274,9 @@ class SolLunaCardEditor extends HTMLElement {
         sel('graph_size', [['small', T.gs_small], ['normal', T.gs_normal], ['large', T.gs_large]]) +
         sel('moon_orientation', [['sky', T.mo_sky], ['simple', T.mo_simple]]) + `<span></span>` +
         sw('graph_sky') + sw('show_rise_lines') + sw('stars') + sw('animations'))}
-      ${sec(T.aurora, sw('show_aurora') + sw('aurora_effect') + AUR.map(ent).join('') + `<div class="hint">${esc(T.auroraHint)}</div>`)}
+      ${sec(T.aurora, sw('show_aurora') + sw('aurora_effect') +
+        sel('aurora_source', [['auto', T.as_auto], ['entities', T.as_entities], ['internet', T.as_internet]]) +
+        num('aurora_threshold', '1', '50') + num('aurora_update_minutes', '1', '15') + sw('aurora_ovation') + AUR.map(ent).join('') + `<div class="hint">${esc(T.auroraHint)}</div>`)}
       ${sec(T.colors, ['sun_color', 'moon_color', 'golden_color', 'blue_color', 'curve_color', 'moon_curve_color', 'aurora_color'].map(col).join(''))}
       <datalist id="entlist"></datalist>
       ${sec(T.location, num('latitude', 'any', ha.latitude ?? '') + num('longitude', 'any', ha.longitude ?? '') + text('time_zone', ha.time_zone || '') + `<div class="hint">${esc(T.locHint)}</div>`)}

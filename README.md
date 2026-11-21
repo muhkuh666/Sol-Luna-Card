@@ -15,7 +15,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 - **Mond** – realistisch gezeichnete Phase (wie am Himmel gedreht), Beleuchtung in %, Mondalter, Mondauf-/-untergang, Entfernung, Tierkreiszeichen
 - **Nächste Mondphasen** mit Datum, Uhrzeit und **Supermond-/Minimond-Kennzeichnung**
 - **Jahreszeiten** – Countdown zur nächsten Sonnenwende bzw. Tagundnachtgleiche (Südhalbkugel wird berücksichtigt)
-- **Polarlicht** – Sichtbarkeit, Kp-Index (Skala 0–9), Warnung und 3-Tage-Vorhersage; bei hoher Aktivität erscheint nachts ein animiertes Nordlicht im Kartenhimmel
+- **Polarlicht** – Sichtbarkeit, Kp-Index (Skala 0–9), Warnung und 3-Tage-Vorhersage – aus Home-Assistant-Entitäten **oder direkt aus dem Internet (NOAA SWPC)**; bei hoher Aktivität erscheint nachts ein animiertes Nordlicht im Kartenhimmel
 - **Grafischer Editor** – wirklich alle Optionen inkl. Farben und Entitäten ohne YAML einstellbar
 - Deutsch & Englisch, 12/24 h, keine externen Abhängigkeiten, alle Berechnungen lokal im Browser
 
@@ -94,6 +94,30 @@ refresh_period: 60
 | `refresh_period` | `60` | Aktualisierung in Sekunden |
 | `sun_color`, `moon_color`, `golden_color`, `blue_color`, `curve_color`, `moon_curve_color`, `aurora_color` | – | Farben (Hex) |
 | `latitude`, `longitude`, `time_zone` | aus HA | Standort überschreiben |
+
+### Polarlicht-Daten
+
+Mit `aurora_source` legst du fest, woher die Daten kommen:
+
+| Wert | Verhalten |
+|---|---|
+| `auto` (Standard) | Polarlicht-Entitäten verwenden, falls vorhanden – sonst direkt aus dem Internet |
+| `entities` | Nur Home-Assistant-Entitäten |
+| `internet` | Immer direkt von NOAA SWPC laden |
+
+**Internet (NOAA SWPC)** – die Karte lädt im Browser:
+
+- [`noaa-planetary-k-index-forecast.json`](https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json) – aktueller Kp-Index und Kp-Vorhersage für 3 Tage (altes und neues NOAA-Format werden unterstützt)
+- [`ovation_aurora_latest.json`](https://services.swpc.noaa.gov/json/ovation_aurora_latest.json) – OVATION-Modell, daraus die Polarlicht-Wahrscheinlichkeit an deinem Standort (~0,9 MB, abschaltbar mit `aurora_ovation: false`)
+
+Die Tagesvorhersage nutzt den höchsten erwarteten Kp-Wert des Tages. Ob Polarlicht bei dir möglich ist, schätzt die Karte mit einer Faustregel für Europa (benötigter Kp ≈ (66 − Breitengrad) / 2, z. B. Kp 7 bei 52° N). Die Warnung wird aktiv, wenn die Sichtbarkeit `aurora_threshold` (Standard 50 %) erreicht oder der aktuelle Kp diesen Wert erreicht. Die Daten werden alle `aurora_update_minutes` (Standard 15) neu geladen und von allen Karten im Dashboard gemeinsam genutzt.
+
+```yaml
+aurora_source: internet
+aurora_ovation: true
+aurora_threshold: 50
+aurora_update_minutes: 15
+```
 
 ### Polarlicht-Entitäten
 
