@@ -6,6 +6,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 
 ## Funktionen
 
+- **Vier Hintergründe** – dynamischer Himmel, Light Mode, Dark Mode oder Theme-Hintergrund
 - **Dynamischer Himmel** – Hintergrundfarbe folgt der Sonnenhöhe (Tag → goldene Stunde → blaue Stunde → Nacht), nachts mit funkelnden Sternen und gelegentlicher Sternschnuppe
 - **Himmelsbahn-Grafik** – Sonnen- und Mondbahn über 24 h, aktuelle Position, goldene/blaue Stunde als farbige Bänder
 - **Status mit Countdown** – z. B. „Goldene Stunde · Blaue Stunde in 12 min“
@@ -15,7 +16,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 - **Nächste Mondphasen** mit Datum, Uhrzeit und **Supermond-/Minimond-Kennzeichnung**
 - **Jahreszeiten** – Countdown zur nächsten Sonnenwende bzw. Tagundnachtgleiche (Südhalbkugel wird berücksichtigt)
 - **Polarlicht** – Sichtbarkeit, Kp-Index (Skala 0–9), Warnung und 3-Tage-Vorhersage; bei hoher Aktivität erscheint nachts ein animiertes Nordlicht im Kartenhimmel
-- **Grafischer Editor** – alle Optionen inkl. Farben und Entitäten ohne YAML einstellbar
+- **Grafischer Editor** – wirklich alle Optionen inkl. Farben und Entitäten ohne YAML einstellbar
 - Deutsch & Englisch, 12/24 h, keine externen Abhängigkeiten, alle Berechnungen lokal im Browser
 
 ## Installation
@@ -47,7 +48,10 @@ Vollständiges Beispiel:
 type: custom:sol-luna-card
 title: Sonne & Mond
 icon: mdi:weather-sunset
-background: sky            # sky | theme
+background: sky            # sky | light | dark | theme
+graph_size: normal         # small | normal | large
+graph_sky: true
+show_rise_lines: true
 moon_orientation: sky      # sky (wie am Himmel gedreht) | simple
 stars: true
 animations: true
@@ -79,9 +83,12 @@ refresh_period: 60
 | `show_aurora` | `true` | Polarlicht-Bereich (erscheint nur, wenn Entitäten gefunden werden) |
 | `aurora_effect` | `true` | Animiertes Nordlicht im Nachthimmel bei Aktivität |
 | `show_position` / `show_season` | `true` | Azimut & Höhe / nächste Sonnenwende |
-| `background` | `sky` | `sky` = dynamischer Himmel, `theme` = Theme-Hintergrund |
+| `background` | `sky` | `sky` = dynamischer Himmel, `light` = heller Modus, `dark` = dunkler Modus, `theme` = Theme-Hintergrund |
+| `graph_size` | `normal` | Höhe der Grafik: `small`, `normal`, `large` |
+| `graph_sky` | `true` | Himmelsverlauf in der Grafik (bei `light`, `dark`, `theme`) |
+| `show_rise_lines` | `true` | Senkrechte Linien bei Sonnenauf- und -untergang |
 | `moon_orientation` | `sky` | `sky` = so gedreht wie am Himmel, `simple` = links/rechts |
-| `stars` / `animations` | `true` | Sterne / Animationen |
+| `stars` / `animations` | `true` | Sterne (bei `sky` und `dark`) / Animationen |
 | `language` | `auto` | `auto`, `de`, `en` |
 | `time_format` | `auto` | `auto`, `24`, `12` |
 | `refresh_period` | `60` | Aktualisierung in Sekunden |

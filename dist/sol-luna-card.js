@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE                                                             *
@@ -224,7 +224,10 @@ const DEFAULTS = {
   show_next_phases: true,
   show_position: true,
   show_season: true,
-  background: 'sky',          // sky | theme
+  background: 'sky',          // sky | theme | light | dark
+  graph_size: 'normal',       // small | normal | large
+  graph_sky: true,            // Himmelsverlauf in der Grafik (bei theme/light/dark)
+  show_rise_lines: true,
   stars: true,
   animations: true,
   moon_orientation: 'sky',    // sky | simple
@@ -529,7 +532,8 @@ class SolLunaCard extends HTMLElement {
     const c = this._config;
     const { t } = this._lang();
     const F = this._fmt(D);
-    const sky = c.background !== 'theme';
+    const mode = ['sky', 'theme', 'light', 'dark'].includes(c.background) ? c.background : 'sky';
+    const sky = mode === 'sky';
     const [skyTop, skyBottom] = skyColors(D.sunNow.alt);
     const night = clamp((-D.sunNow.alt - 3) / 9, 0, 1);
     const anim = c.animations;
@@ -548,13 +552,13 @@ class SolLunaCard extends HTMLElement {
     const footer = (c.show_position || c.show_season) ? this._footerHtml(D, t, F) : '';
     const A = this._auroraData();
     const aurora = A ? this._auroraHtml(A, t, F) : '';
-    const auroraSky = A && sky && c.aurora_effect ? this._auroraSkyHtml(this._auroraIntensity(A), night) : '';
+    const auroraSky = A && (sky || mode === 'dark') && c.aurora_effect ? this._auroraSkyHtml(this._auroraIntensity(A) * (sky ? 1 : 0.7), night) : '';
 
-    const stars = sky && c.stars && night > 0 ? this._starsHtml(night, anim) : '';
+    const stars = (sky || mode === 'dark') && c.stars && night > 0 ? this._starsHtml(night * (sky ? 1 : 0.5), anim) : '';
 
     this.shadowRoot.innerHTML = `
       <style>${this._css()}</style>
-      <ha-card class="${sky ? 'sky' : 'theme'} ${anim ? 'anim' : ''}" style="
+      <ha-card class="${mode} ${anim ? 'anim' : ''}" style="
         --slc-sun:${esc(c.sun_color)}; --slc-moon:${esc(c.moon_color)}; --slc-golden:${esc(c.golden_color)};
         --slc-blue:${esc(c.blue_color)}; --slc-curve:${esc(c.curve_color)}; --slc-aurora:${esc(c.aurora_color)};
         ${sky ? `--slc-sky-top:${skyTop}; --slc-sky-bottom:${skyBottom};` : ''}">
@@ -702,7 +706,9 @@ class SolLunaCard extends HTMLElement {
 
   _graphHtml(D, t, F, sky, rot) {
     const c = this._config;
-    const W = 400, H = 150, padX = 6, top = 16, above = 80, below = 34;
+    const above = { small: 52, normal: 80, large: 110 }[c.graph_size] || 80;
+    const below = Math.round(above * 0.42);
+    const W = 400, padX = 6, top = 16, H = top + above + below + 20;
     const hy = top + above;
     const span = D.end - D.start;
     const x = (ms) => padX + (ms - D.start) / span * (W - 2 * padX);
@@ -748,11 +754,11 @@ class SolLunaCard extends HTMLElement {
     const sx = nowX, syv = y(D.sunNow.alt);
     const sunUp = D.sunNow.alt > -0.833;
     const mx = nowX, myv = y(D.moonNow.altTopo);
-    const lines = [D.sunrise, D.sunset].filter((v) => v != null).map((v) =>
+    const lines = !c.show_rise_lines ? '' : [D.sunrise, D.sunset].filter((v) => v != null).map((v) =>
       `<line x1="${x(v)}" x2="${x(v)}" y1="${top}" y2="${hy}" class="riseline"/>`).join('');
 
     const [st, sb] = skyColors(D.sunNow.alt);
-    const chartBg = sky ? '' : `<rect x="0" y="0" width="${W}" height="${hy + below}" rx="10" fill="url(#bgsky)"/>`;
+    const chartBg = sky || !c.graph_sky ? '' : `<rect x="0" y="0" width="${W}" height="${hy + below}" rx="10" fill="url(#bgsky)"/>`;
 
     return `
     <div class="graph">
@@ -904,6 +910,13 @@ class SolLunaCard extends HTMLElement {
     ha-card.sky { color:#fff; --slc-text:#fff; --slc-sub:rgba(255,255,255,.75); --slc-tile:rgba(8,14,40,.24); --slc-line:rgba(255,255,255,.16);
       text-shadow:0 1px 2px rgba(0,0,20,.35); border:none; background:transparent; }
     ha-card.theme { --slc-text:var(--primary-text-color); --slc-sub:var(--secondary-text-color); --slc-tile:rgba(127,127,127,.09); --slc-line:var(--divider-color, rgba(127,127,127,.25)); }
+    ha-card.light { --slc-text:#1c2333; --slc-sub:#5d6678; --slc-tile:rgba(30,50,90,.05); --slc-line:rgba(30,50,90,.11);
+      background:#f6f8fc; color:#1c2333; border:1px solid rgba(30,50,90,.08); }
+    ha-card.dark { --slc-text:#eef1f8; --slc-sub:#9aa3b8; --slc-tile:rgba(255,255,255,.045); --slc-line:rgba(255,255,255,.09);
+      background:#131722; color:#eef1f8; border:1px solid rgba(255,255,255,.05); }
+    .light .graph .horizon, .light .graph .tick { stroke:rgba(30,50,90,.35); }
+    .light .graph .nowline { stroke:rgba(30,50,90,.45); }
+    .light .graph .riseline { stroke:rgba(30,50,90,.25); }
     .skybg { position:absolute; inset:0; background:linear-gradient(180deg, var(--slc-sky-top) 0%, var(--slc-sky-bottom) 100%); transition:background 2s; }
     .stars { position:absolute; inset:0; pointer-events:none; }
     .stars circle { fill:#fff; }
@@ -928,7 +941,7 @@ class SolLunaCard extends HTMLElement {
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,169,77,.0)} 50%{box-shadow:0 0 14px 2px rgba(255,169,77,.45)} }
     .graph svg { width:100%; display:block; overflow:visible; }
     .graph .below { fill:rgba(0,0,20,.18); }
-    .theme .graph .below { fill:rgba(0,0,20,.25); }
+    .theme .graph .below, .dark .graph .below { fill:rgba(0,0,20,.25); } .light .graph .below { fill:rgba(30,50,90,.06); }
     .graph .horizon { stroke:rgba(255,255,255,.55); stroke-width:1; }
     .graph .tick { stroke:rgba(255,255,255,.55); stroke-width:1; }
     .graph .axis { fill:var(--slc-sub); font-size:9px; text-anchor:middle; }
@@ -954,7 +967,9 @@ class SolLunaCard extends HTMLElement {
     .mid .big { font-size:1.25em; font-weight:700; color:var(--slc-text); white-space:nowrap; }
     .mid .delta { font-size:.75em; margin-top:2px; white-space:nowrap; }
     .mid .delta.up { color:#8ef0a8; } .mid .delta.down { color:#ffb199; }
-    .theme .mid .delta.up { color:var(--success-color, #2e9d4e); } .theme .mid .delta.down { color:var(--warning-color, #d9822b); }
+    .theme .mid .delta.up, .light .mid .delta.up { color:var(--success-color, #2e9d4e); } .theme .mid .delta.down, .light .mid .delta.down { color:var(--warning-color, #d9822b); }
+    .light .badge.micro { background:rgba(30,50,90,.15); }
+    .light .kpw, .light .ringfg, .light .ahead ha-icon { filter:brightness(.62) saturate(1.3); }
     .mid .noon { display:flex; align-items:center; gap:4px; font-size:.75em; color:var(--slc-sub); margin-top:6px; white-space:nowrap; }
     .mid .noon ha-icon { --mdc-icon-size:13px; width:13px; height:13px; color:var(--slc-sun); }
     .moonrow { display:flex; gap:12px; align-items:center; }
@@ -969,7 +984,8 @@ class SolLunaCard extends HTMLElement {
     .grid2 > div:nth-child(odd) { display:flex; align-items:center; gap:5px; color:var(--slc-sub); }
     .grid2 .v { font-variant-numeric:tabular-nums; font-weight:500; color:var(--slc-text); }
     .grid2 ha-icon { --mdc-icon-size:14px; width:14px; height:14px; color:var(--slc-moon); }
-    .theme .grid2 ha-icon { color:var(--secondary-text-color); }
+    .theme .grid2 ha-icon { color:var(--secondary-text-color); } .light .grid2 ha-icon { color:#7a86a0; }
+    .light .phaseicon circle:first-of-type, .light .bigmoon { filter:drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
     .dim { opacity:.6; font-weight:400; }
     .phases { display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-top:10px; padding-top:8px; border-top:1px solid var(--slc-line); }
     .ph { display:flex; align-items:center; gap:8px; font-size:.78em; min-width:0; }
@@ -1036,7 +1052,9 @@ const ED_STR = {
     show_moon_in_graph: 'Mondbahn in der Grafik', show_hour_bands: 'Goldene/Blaue Stunde markieren',
     show_sun_times: 'Sonnenzeiten & Tageslänge', show_moon: 'Mond-Details', show_next_phases: 'Nächste Mondphasen',
     show_position: 'Azimut & Höhe', show_season: 'Nächste Sonnenwende/Tagundnachtgleiche',
-    background: 'Hintergrund', bg_sky: 'Dynamischer Himmel', bg_theme: 'Theme-Hintergrund',
+    background: 'Hintergrund', bg_sky: 'Dynamischer Himmel', bg_theme: 'Theme-Hintergrund', bg_light: 'Hell (Light Mode)', bg_dark: 'Dunkel (Dark Mode)',
+    graph_size: 'Grafik-Größe', gs_small: 'Klein', gs_normal: 'Normal', gs_large: 'Groß',
+    graph_sky: 'Himmelsverlauf in der Grafik (bei Theme/Hell/Dunkel)', show_rise_lines: 'Linien bei Auf-/Untergang',
     stars: 'Sterne bei Nacht', animations: 'Animationen', moon_orientation: 'Mond-Ausrichtung',
     mo_sky: 'Wie am Himmel (gedreht)', mo_simple: 'Einfach (links/rechts)',
     sun_color: 'Sonne', moon_color: 'Mond', golden_color: 'Goldene Stunde', blue_color: 'Blaue Stunde',
@@ -1057,7 +1075,9 @@ const ED_STR = {
     show_moon_in_graph: 'Moon path in graph', show_hour_bands: 'Highlight golden/blue hour',
     show_sun_times: 'Sun times & day length', show_moon: 'Moon details', show_next_phases: 'Next moon phases',
     show_position: 'Azimuth & elevation', show_season: 'Next solstice/equinox',
-    background: 'Background', bg_sky: 'Dynamic sky', bg_theme: 'Theme background',
+    background: 'Background', bg_sky: 'Dynamic sky', bg_theme: 'Theme background', bg_light: 'Light mode', bg_dark: 'Dark mode',
+    graph_size: 'Graph size', gs_small: 'Small', gs_normal: 'Normal', gs_large: 'Large',
+    graph_sky: 'Sky gradient in graph (theme/light/dark)', show_rise_lines: 'Sunrise/sunset lines',
     stars: 'Stars at night', animations: 'Animations', moon_orientation: 'Moon orientation',
     mo_sky: 'As seen in the sky (rotated)', mo_simple: 'Simple (left/right)',
     sun_color: 'Sun', moon_color: 'Moon', golden_color: 'Golden hour', blue_color: 'Blue hour',
@@ -1134,8 +1154,10 @@ class SolLunaCardEditor extends HTMLElement {
         sel('time_format', [['auto', T.auto], ['24', '24 h'], ['12', '12 h']]) +
         num('refresh_period', '1', '60'), true)}
       ${sec(T.display, ['show_header', 'show_status', 'show_graph', 'show_moon_in_graph', 'show_hour_bands', 'show_sun_times', 'show_moon', 'show_next_phases', 'show_position', 'show_season'].map(sw).join(''))}
-      ${sec(T.design, sel('background', [['sky', T.bg_sky], ['theme', T.bg_theme]]) +
-        sel('moon_orientation', [['sky', T.mo_sky], ['simple', T.mo_simple]]) + sw('stars') + sw('animations'))}
+      ${sec(T.design, sel('background', [['sky', T.bg_sky], ['light', T.bg_light], ['dark', T.bg_dark], ['theme', T.bg_theme]]) +
+        sel('graph_size', [['small', T.gs_small], ['normal', T.gs_normal], ['large', T.gs_large]]) +
+        sel('moon_orientation', [['sky', T.mo_sky], ['simple', T.mo_simple]]) + `<span></span>` +
+        sw('graph_sky') + sw('show_rise_lines') + sw('stars') + sw('animations'))}
       ${sec(T.aurora, sw('show_aurora') + sw('aurora_effect') + AUR.map(ent).join('') + `<div class="hint">${esc(T.auroraHint)}</div>`)}
       ${sec(T.colors, ['sun_color', 'moon_color', 'golden_color', 'blue_color', 'curve_color', 'moon_curve_color', 'aurora_color'].map(col).join(''))}
       <datalist id="entlist"></datalist>
