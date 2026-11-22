@@ -32,8 +32,9 @@ class SolLunaCard extends HTMLElement {
     this._hass = hass;
     const c = this._config || {};
     const hz = c.horizon_source === 'entity' && c.horizon_entity ? hass?.states?.[c.horizon_entity]?.last_updated : '';
+    const bm = c.house_source === 'entity' && c.building_entity ? hass?.states?.[c.building_entity]?.last_updated : '';
     const key = [hass?.config?.latitude, hass?.config?.longitude, hass?.config?.time_zone, hass?.config?.elevation,
-      hass?.locale?.language || hass?.language, hass?.locale?.time_format, hz].join('|');
+      hass?.locale?.language || hass?.language, hass?.locale?.time_format, hz, bm].join('|');
     const ak = this._config ? this._auroraKey() : '';
     if (first || key !== this._hassKey || ak !== this._auroraK) {
       if (key !== this._hassKey) this._cache.clear();

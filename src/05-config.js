@@ -79,12 +79,15 @@ const DEFAULTS = {
   // 3D-Tab
   show_3d_tab: true,
   show_house: true,
+  house_source: 'generic',     // generic | entity (echtes LoD2-Modell aus der Sol-&-Luna-Integration)
+  building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First
   house_length: 12,            // Meter entlang des Firsts
   wall_height: 6,
   roof_pitch: 35,
   show_pv: true,
+  pv_flat_roofs: false,         // PV auch auf Flachdächern (echtes Modell)
   wall_color: '#ece6da',
   roof_color: '#9a4433',
   pv_color: '#1d3557',

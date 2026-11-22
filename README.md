@@ -27,6 +27,7 @@ A Home Assistant card for the **sun, moon and sky**: daily sun and moon paths, a
 
 **3D**
 - **Sky dome & house**: your house (gable roof, size, orientation, PV modules configurable) under a hemisphere with sun, moon, visible planets and bright stars, a real-time shadow and sun paths for today, summer and winter. Drag to rotate, slider for the time of day.
+- **Real house shape**: in North Rhine-Westphalia the integration loads your building's official 3D model (LoD2, Geobasis NRW, free under dl-de/zero) – with real roof surfaces, dormers and annexes.
 
 **Year**
 - **Day length through the year** with a marker for today.
@@ -104,6 +105,8 @@ language: auto
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planets, meteor showers, eclipses (years ahead) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Year tab |
 | `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D tab |
+| `house_source`, `building_entity` | `generic`, – | `generic` = house from the sizes below, `entity` = **real LoD2 building model** from the [Sol & Luna integration](https://github.com/muhkuh666/sol-luna) |
+| `pv_flat_roofs` | `false` | Also draw PV modules on flat roofs (real model) |
 | `roof_azimuth`, `roof_pitch` | `180`, `35` | Direction the main roof faces (°), roof pitch (°) |
 | `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | House size in metres (width across the ridge) |
 | `wall_color`, `roof_color`, `pv_color` | – | House colours |

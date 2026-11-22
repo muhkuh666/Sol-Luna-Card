@@ -28,6 +28,36 @@ function convexHull(pts) {
 
 Object.assign(SolLunaCard.prototype, {
 
+  _buildingFaces() {
+    const c = this._config;
+    if (c.house_source !== 'entity' || !c.building_entity) return null;
+    const st = this._hass?.states?.[c.building_entity];
+    const faces = st?.attributes?.faces;
+    if (!Array.isArray(faces) || !faces.length) return null;
+    return this._cached('bld|' + c.building_entity + '|' + st.last_updated, () => {
+      const out = [];
+      const all = faces.flatMap((f) => f.p || []);
+      const cxy = [all.reduce((s, p) => s + p[0], 0) / all.length, all.reduce((s, p) => s + p[1], 0) / all.length];
+      for (const f of faces) {
+        if (!Array.isArray(f.p) || f.p.length < 3 || f.t === 'g') continue;
+        const pts = f.p.map((p) => [Number(p[0]), Number(p[1]), Number(p[2])]);
+        // Normale nach Newell, nach außen gerichtet
+        let n = [0, 0, 0];
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          n[0] += (a[1] - b[1]) * (a[2] + b[2]); n[1] += (a[2] - b[2]) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+        }
+        n = V3.norm(n);
+        const cen = V3.mul(pts.reduce((s, p) => V3.add(s, p), [0, 0, 0]), 1 / pts.length);
+        if (f.t === 'r') { if (n[2] < 0) n = V3.mul(n, -1); }
+        else if (V3.dot(n, [cen[0] - cxy[0], cen[1] - cxy[1], 0]) < 0) n = V3.mul(n, -1);
+        out.push({ kind: f.t === 'r' ? 'mroof' : 'mwall', pts, n });
+      }
+      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
+      return { faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
+    });
+  },
+
   _t3(D) {
     return this._time3d != null && this._time3d >= D.start && this._time3d <= D.end ? this._time3d : D.now;
   },
@@ -107,7 +137,8 @@ Object.assign(SolLunaCard.prototype, {
     const wh = Math.max(1, Number(c.wall_height) || 6);
     const pitch = clamp(Number(c.roof_pitch ?? 35), 0, 65);
     const rh = hw / 2 * Math.tan(pitch * RAD);
-    const R = Math.max(hw, hl, wh + rh) * 2.2;
+    const model = c.show_house === false ? null : this._buildingFaces();
+    const R = model ? Math.max(model.ext * 1.6, model.height * 2.2, 14) : Math.max(hw, hl, wh + rh) * 2.2;
 
     // ---- Kamera
     const yaw = (this._yaw3d ?? 105) * RAD, pit = clamp(this._pitch3d ?? 30, 4, 80) * RAD;
@@ -207,7 +238,7 @@ Object.assign(SolLunaCard.prototype, {
     const L = (s, l, z) => V3.add(V3.add(V3.mul(ax, s), V3.mul(bx, l)), [0, 0, z]);
     const s2 = hw / 2, l2 = hl / 2, top = wh + rh;
     const sinP = Math.sin(pitch * RAD), cosP = Math.cos(pitch * RAD);
-    const faces = c.show_house === false ? [] : [
+    const faces = c.show_house === false ? [] : model ? model.faces : [
       { kind: 'wall', side: 1, pts: [L(s2, -l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(s2, -l2, wh)], n: ax },
       { kind: 'wall', side: -1, pts: [L(-s2, l2, 0), L(-s2, -l2, 0), L(-s2, -l2, wh), L(-s2, l2, wh)], n: V3.mul(ax, -1) },
       { kind: 'gable', pts: [L(-s2, l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(0, l2, top), L(-s2, l2, wh)], n: bx },
@@ -217,7 +248,7 @@ Object.assign(SolLunaCard.prototype, {
     ];
     const sunDir = V3.dir(sun.alt, sun.az);
     const light = (n) => sun.alt > -1 ? Math.max(0, V3.dot(n, sunDir)) * clamp((sun.alt + 1) / 6, 0, 1) : 0;
-    const houseDepth = P([0, 0, wh / 2])[2];
+    const houseDepth = P([0, 0, model ? model.height / 2 : wh / 2])[2];
 
     // ---- Schatten
     if (faces.length && sun.alt > 0.5) {
@@ -285,7 +316,8 @@ Object.assign(SolLunaCard.prototype, {
     }).filter((fc) => fc.facing).sort((a, b) => b.depth - a.depth);
     const amb = 0.3 + 0.32 * day;
     for (const fc of vis) {
-      const base = fc.kind === 'roof' ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
+      const isRoof = fc.kind === 'roof' || fc.kind === 'mroof';
+      const base = isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
       g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
       line3(fc.pts, true); g.fill();
       g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke();
@@ -300,6 +332,18 @@ Object.assign(SolLunaCard.prototype, {
         g.strokeStyle = 'rgba(180,200,230,.35)'; g.lineWidth = 0.6;
         for (let i = 1; i < 6; i++) { line3([lerp3(q[0], q[1], i / 6), lerp3(q[3], q[2], i / 6)]); g.stroke(); }
         line3([lerp3(q[0], q[3], 0.5), lerp3(q[1], q[2], 0.5)]); g.stroke();
+      }
+      // PV auf echten Dachflächen: alle Flächen, die ungefähr in Richtung roof_azimuth zeigen
+      if (fc.kind === 'mroof' && c.show_pv) {
+        const tilt = Math.acos(clamp(fc.n[2], -1, 1)) * DEG;
+        const naz = norm360(Math.atan2(fc.n[0], fc.n[1]) * DEG);
+        if ((tilt > 8 && Math.abs(wrap180(naz - Number(c.roof_azimuth ?? 180))) <= 50) || (tilt <= 8 && c.pv_flat_roofs)) {
+          const cen = V3.mul(fc.pts.reduce((s, p) => V3.add(s, p), [0, 0, 0]), 1 / fc.pts.length);
+          const q = fc.pts.map((p) => V3.add(cen, V3.mul(V3.sub(p, cen), 0.78)));
+          g.fillStyle = shadeHex(c.pv_color || '#1d3557', 0.6 + 0.9 * light(fc.n));
+          line3(q, true); g.fill();
+          g.strokeStyle = 'rgba(180,200,230,.4)'; g.lineWidth = 0.6; g.stroke();
+        }
       }
       // Fenster (nachts beleuchtet)
       if (fc.kind === 'wall') {

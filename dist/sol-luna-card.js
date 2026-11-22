@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -1041,12 +1041,15 @@ const DEFAULTS = {
   // 3D-Tab
   show_3d_tab: true,
   show_house: true,
+  house_source: 'generic',     // generic | entity (echtes LoD2-Modell aus der Sol-&-Luna-Integration)
+  building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First
   house_length: 12,            // Meter entlang des Firsts
   wall_height: 6,
   roof_pitch: 35,
   show_pv: true,
+  pv_flat_roofs: false,         // PV auch auf Flachdächern (echtes Modell)
   wall_color: '#ece6da',
   roof_color: '#9a4433',
   pv_color: '#1d3557',
@@ -1103,8 +1106,9 @@ class SolLunaCard extends HTMLElement {
     this._hass = hass;
     const c = this._config || {};
     const hz = c.horizon_source === 'entity' && c.horizon_entity ? hass?.states?.[c.horizon_entity]?.last_updated : '';
+    const bm = c.house_source === 'entity' && c.building_entity ? hass?.states?.[c.building_entity]?.last_updated : '';
     const key = [hass?.config?.latitude, hass?.config?.longitude, hass?.config?.time_zone, hass?.config?.elevation,
-      hass?.locale?.language || hass?.language, hass?.locale?.time_format, hz].join('|');
+      hass?.locale?.language || hass?.language, hass?.locale?.time_format, hz, bm].join('|');
     const ak = this._config ? this._auroraKey() : '';
     if (first || key !== this._hassKey || ak !== this._auroraK) {
       if (key !== this._hassKey) this._cache.clear();
@@ -2608,6 +2612,36 @@ function convexHull(pts) {
 
 Object.assign(SolLunaCard.prototype, {
 
+  _buildingFaces() {
+    const c = this._config;
+    if (c.house_source !== 'entity' || !c.building_entity) return null;
+    const st = this._hass?.states?.[c.building_entity];
+    const faces = st?.attributes?.faces;
+    if (!Array.isArray(faces) || !faces.length) return null;
+    return this._cached('bld|' + c.building_entity + '|' + st.last_updated, () => {
+      const out = [];
+      const all = faces.flatMap((f) => f.p || []);
+      const cxy = [all.reduce((s, p) => s + p[0], 0) / all.length, all.reduce((s, p) => s + p[1], 0) / all.length];
+      for (const f of faces) {
+        if (!Array.isArray(f.p) || f.p.length < 3 || f.t === 'g') continue;
+        const pts = f.p.map((p) => [Number(p[0]), Number(p[1]), Number(p[2])]);
+        // Normale nach Newell, nach außen gerichtet
+        let n = [0, 0, 0];
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          n[0] += (a[1] - b[1]) * (a[2] + b[2]); n[1] += (a[2] - b[2]) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+        }
+        n = V3.norm(n);
+        const cen = V3.mul(pts.reduce((s, p) => V3.add(s, p), [0, 0, 0]), 1 / pts.length);
+        if (f.t === 'r') { if (n[2] < 0) n = V3.mul(n, -1); }
+        else if (V3.dot(n, [cen[0] - cxy[0], cen[1] - cxy[1], 0]) < 0) n = V3.mul(n, -1);
+        out.push({ kind: f.t === 'r' ? 'mroof' : 'mwall', pts, n });
+      }
+      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
+      return { faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
+    });
+  },
+
   _t3(D) {
     return this._time3d != null && this._time3d >= D.start && this._time3d <= D.end ? this._time3d : D.now;
   },
@@ -2687,7 +2721,8 @@ Object.assign(SolLunaCard.prototype, {
     const wh = Math.max(1, Number(c.wall_height) || 6);
     const pitch = clamp(Number(c.roof_pitch ?? 35), 0, 65);
     const rh = hw / 2 * Math.tan(pitch * RAD);
-    const R = Math.max(hw, hl, wh + rh) * 2.2;
+    const model = c.show_house === false ? null : this._buildingFaces();
+    const R = model ? Math.max(model.ext * 1.6, model.height * 2.2, 14) : Math.max(hw, hl, wh + rh) * 2.2;
 
     // ---- Kamera
     const yaw = (this._yaw3d ?? 105) * RAD, pit = clamp(this._pitch3d ?? 30, 4, 80) * RAD;
@@ -2787,7 +2822,7 @@ Object.assign(SolLunaCard.prototype, {
     const L = (s, l, z) => V3.add(V3.add(V3.mul(ax, s), V3.mul(bx, l)), [0, 0, z]);
     const s2 = hw / 2, l2 = hl / 2, top = wh + rh;
     const sinP = Math.sin(pitch * RAD), cosP = Math.cos(pitch * RAD);
-    const faces = c.show_house === false ? [] : [
+    const faces = c.show_house === false ? [] : model ? model.faces : [
       { kind: 'wall', side: 1, pts: [L(s2, -l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(s2, -l2, wh)], n: ax },
       { kind: 'wall', side: -1, pts: [L(-s2, l2, 0), L(-s2, -l2, 0), L(-s2, -l2, wh), L(-s2, l2, wh)], n: V3.mul(ax, -1) },
       { kind: 'gable', pts: [L(-s2, l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(0, l2, top), L(-s2, l2, wh)], n: bx },
@@ -2797,7 +2832,7 @@ Object.assign(SolLunaCard.prototype, {
     ];
     const sunDir = V3.dir(sun.alt, sun.az);
     const light = (n) => sun.alt > -1 ? Math.max(0, V3.dot(n, sunDir)) * clamp((sun.alt + 1) / 6, 0, 1) : 0;
-    const houseDepth = P([0, 0, wh / 2])[2];
+    const houseDepth = P([0, 0, model ? model.height / 2 : wh / 2])[2];
 
     // ---- Schatten
     if (faces.length && sun.alt > 0.5) {
@@ -2865,7 +2900,8 @@ Object.assign(SolLunaCard.prototype, {
     }).filter((fc) => fc.facing).sort((a, b) => b.depth - a.depth);
     const amb = 0.3 + 0.32 * day;
     for (const fc of vis) {
-      const base = fc.kind === 'roof' ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
+      const isRoof = fc.kind === 'roof' || fc.kind === 'mroof';
+      const base = isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
       g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
       line3(fc.pts, true); g.fill();
       g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke();
@@ -2880,6 +2916,18 @@ Object.assign(SolLunaCard.prototype, {
         g.strokeStyle = 'rgba(180,200,230,.35)'; g.lineWidth = 0.6;
         for (let i = 1; i < 6; i++) { line3([lerp3(q[0], q[1], i / 6), lerp3(q[3], q[2], i / 6)]); g.stroke(); }
         line3([lerp3(q[0], q[3], 0.5), lerp3(q[1], q[2], 0.5)]); g.stroke();
+      }
+      // PV auf echten Dachflächen: alle Flächen, die ungefähr in Richtung roof_azimuth zeigen
+      if (fc.kind === 'mroof' && c.show_pv) {
+        const tilt = Math.acos(clamp(fc.n[2], -1, 1)) * DEG;
+        const naz = norm360(Math.atan2(fc.n[0], fc.n[1]) * DEG);
+        if ((tilt > 8 && Math.abs(wrap180(naz - Number(c.roof_azimuth ?? 180))) <= 50) || (tilt <= 8 && c.pv_flat_roofs)) {
+          const cen = V3.mul(fc.pts.reduce((s, p) => V3.add(s, p), [0, 0, 0]), 1 / fc.pts.length);
+          const q = fc.pts.map((p) => V3.add(cen, V3.mul(V3.sub(p, cen), 0.78)));
+          g.fillStyle = shadeHex(c.pv_color || '#1d3557', 0.6 + 0.9 * light(fc.n));
+          line3(q, true); g.fill();
+          g.strokeStyle = 'rgba(180,200,230,.4)'; g.lineWidth = 0.6; g.stroke();
+        }
       }
       // Fenster (nachts beleuchtet)
       if (fc.kind === 'wall') {
@@ -2928,9 +2976,9 @@ const ED_STR = {
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
-    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_entity: 'Echtes Gebäudemodell (Entität)', building_entity: 'Gebäudemodell-Entität', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
     house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
-    show_pv: 'PV-Module auf dem Hauptdach', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
+    show_pv: 'PV-Module auf dem Hauptdach', pv_flat_roofs: 'PV auch auf Flachdächern (z. B. Garage)', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
     tab_today: 'Heute', tab_night: 'Nacht', tab_year: 'Jahr', show_tabs: 'Tabs anzeigen', show_night_tab: 'Tab „Nacht“', show_year_tab: 'Tab „Jahr“',
     scrub: 'Zeitregler (in der Grafik ziehen)',
@@ -2968,9 +3016,9 @@ const ED_STR = {
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
-    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_entity: 'Real building model (entity)', building_entity: 'Building model entity', roof_azimuth: 'Main roof orientation (°, 180 = south)',
     house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
-    show_pv: 'PV modules on main roof', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
+    show_pv: 'PV modules on main roof', pv_flat_roofs: 'PV on flat roofs too (e.g. garage)', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
     tab_today: 'Today', tab_night: 'Night', tab_year: 'Year', show_tabs: 'Show tabs', show_night_tab: '“Night” tab', show_year_tab: '“Year” tab',
     scrub: 'Time scrubber (drag the graph)',
@@ -3064,9 +3112,10 @@ class SolLunaCardEditor extends HTMLElement {
         `<label class="f"><span>${esc(T.weather_entity)}</span><input data-k="weather_entity" type="text" list="wxlist" placeholder="weather.…"></label>` +
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
-      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
+      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['entity', T.hs_entity]]) +
+        `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.sol_luna_gebaudemodell"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
-        sw('show_pv') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
+        sw('show_pv') + sw('pv_flat_roofs') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
       ${sec(T.yearSec, ['show_year_curve', 'show_sun_path', 'show_year_dates'].map(sw).join(''))}
       ${sec(T.horizonSec, sel('horizon_source', [['off', T.hz_off], ['entity', T.hz_entity], ['manual', T.hz_manual]]) +
         `<label class="f"><span>${esc(T.horizon_entity)}</span><input data-k="horizon_entity" type="text" list="entlist" placeholder="sensor.sol_luna_horizon"></label>` +

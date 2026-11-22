@@ -23,9 +23,9 @@ const ED_STR = {
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
-    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_entity: 'Echtes Gebäudemodell (Entität)', building_entity: 'Gebäudemodell-Entität', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
     house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
-    show_pv: 'PV-Module auf dem Hauptdach', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
+    show_pv: 'PV-Module auf dem Hauptdach', pv_flat_roofs: 'PV auch auf Flachdächern (z. B. Garage)', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
     tab_today: 'Heute', tab_night: 'Nacht', tab_year: 'Jahr', show_tabs: 'Tabs anzeigen', show_night_tab: 'Tab „Nacht“', show_year_tab: 'Tab „Jahr“',
     scrub: 'Zeitregler (in der Grafik ziehen)',
@@ -63,9 +63,9 @@ const ED_STR = {
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
-    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_entity: 'Real building model (entity)', building_entity: 'Building model entity', roof_azimuth: 'Main roof orientation (°, 180 = south)',
     house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
-    show_pv: 'PV modules on main roof', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
+    show_pv: 'PV modules on main roof', pv_flat_roofs: 'PV on flat roofs too (e.g. garage)', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
     tab_today: 'Today', tab_night: 'Night', tab_year: 'Year', show_tabs: 'Show tabs', show_night_tab: '“Night” tab', show_year_tab: '“Year” tab',
     scrub: 'Time scrubber (drag the graph)',
@@ -159,9 +159,10 @@ class SolLunaCardEditor extends HTMLElement {
         `<label class="f"><span>${esc(T.weather_entity)}</span><input data-k="weather_entity" type="text" list="wxlist" placeholder="weather.…"></label>` +
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
-      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
+      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['entity', T.hs_entity]]) +
+        `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.sol_luna_gebaudemodell"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
-        sw('show_pv') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
+        sw('show_pv') + sw('pv_flat_roofs') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
       ${sec(T.yearSec, ['show_year_curve', 'show_sun_path', 'show_year_dates'].map(sw).join(''))}
       ${sec(T.horizonSec, sel('horizon_source', [['off', T.hz_off], ['entity', T.hz_entity], ['manual', T.hz_manual]]) +
         `<label class="f"><span>${esc(T.horizon_entity)}</span><input data-k="horizon_entity" type="text" list="entlist" placeholder="sensor.sol_luna_horizon"></label>` +

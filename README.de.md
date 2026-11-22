@@ -27,6 +27,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 
 **3D**
 - **Himmelskuppel & Haus**: dein Haus (Satteldach, Größe, Ausrichtung und PV-Module einstellbar) unter einer Halbkugel mit Sonne, Mond, sichtbaren Planeten und hellen Sternen, mit Schattenwurf und den Sonnenbahnen für heute, Sommer und Winter. Ziehen zum Drehen, Regler für die Uhrzeit.
+- **Echte Hausform**: In Nordrhein-Westfalen lädt die Integration das amtliche 3D-Modell deines Gebäudes (LoD2, Geobasis NRW, frei unter dl-de/zero) – mit echten Dachflächen, Gauben und Anbauten.
 
 **Jahr**
 - **Tageslänge im Jahresverlauf** mit Markierung für heute.
@@ -104,6 +105,8 @@ language: auto
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planeten, Sternschnuppen, Finsternisse (Jahre voraus) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Jahr-Tab |
 | `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D-Tab |
+| `house_source`, `building_entity` | `generic`, – | `generic` = Haus aus den Maßen unten, `entity` = **echtes LoD2-Gebäudemodell** aus der [Sol & Luna Integration](https://github.com/muhkuh666/sol-luna) |
+| `pv_flat_roofs` | `false` | PV-Module auch auf Flachdächern zeichnen (echtes Modell) |
 | `roof_azimuth`, `roof_pitch` | `180`, `35` | Richtung der Hauptdachfläche (°), Dachneigung (°) |
 | `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | Hausmaße in Metern (Breite quer zum First) |
 | `wall_color`, `roof_color`, `pv_color` | – | Farben des Hauses |
