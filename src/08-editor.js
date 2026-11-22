@@ -23,7 +23,9 @@ const ED_STR = {
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
-    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_entity: 'Echtes Gebäudemodell (Entität)', building_entity: 'Gebäudemodell-Entität', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_file: 'Importiertes Modell (LoD2/CityJSON oder OBJ)', hs_entity: 'Modell aus Entität (Attribut faces)', building_entity: 'Gebäudemodell-Entität',
+    house_model: 'Modell-Datei (z. B. /local/haus.json)', model_up: 'Achse oben (OBJ)', mu_auto: 'Automatisch', model_scale: 'Maßstab (1 = Meter, 0.01 = cm)', model_rotation: 'Drehung (°)',
+    modelHint: 'Datei nach /config/www kopieren und als /local/Dateiname eintragen. LoD2: CityJSON vom Vermessungsamt. OBJ: Bauteile mit „Dach“ bzw. „PV“ im Namen werden erkannt.', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
     house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
     show_pv: 'PV-Module auf dem Hauptdach', pv_flat_roofs: 'PV auch auf Flachdächern (z. B. Garage)', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
@@ -63,7 +65,9 @@ const ED_STR = {
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
-    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_entity: 'Real building model (entity)', building_entity: 'Building model entity', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_file: 'Imported model (LoD2/CityJSON or OBJ)', hs_entity: 'Model from entity (faces attribute)', building_entity: 'Building model entity',
+    house_model: 'Model file (e.g. /local/house.json)', model_up: 'Up axis (OBJ)', mu_auto: 'Automatic', model_scale: 'Scale (1 = metres, 0.01 = cm)', model_rotation: 'Rotation (°)',
+    modelHint: 'Copy the file to /config/www and enter it as /local/filename. LoD2: CityJSON from the surveying office. OBJ: parts named “roof” or “PV” are detected.', roof_azimuth: 'Main roof orientation (°, 180 = south)',
     house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
     show_pv: 'PV modules on main roof', pv_flat_roofs: 'PV on flat roofs too (e.g. garage)', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
@@ -159,7 +163,10 @@ class SolLunaCardEditor extends HTMLElement {
         `<label class="f"><span>${esc(T.weather_entity)}</span><input data-k="weather_entity" type="text" list="wxlist" placeholder="weather.…"></label>` +
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
-      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['entity', T.hs_entity]]) +
+      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['file', T.hs_file], ['entity', T.hs_entity]]) +
+        `<label class="f wide"><span>${esc(T.house_model)}</span><input data-k="house_model" type="text" placeholder="/local/haus.json"></label>` +
+        sel('model_up', [['auto', T.mu_auto], ['y', 'Y'], ['z', 'Z']]) + num('model_rotation', '1', '0') + num('model_scale', 'any', '1') + '<span></span>' +
+        `<div class="hint">${esc(T.modelHint)}</div>` +
         `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.…"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
         sw('show_pv') + sw('pv_flat_roofs') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}

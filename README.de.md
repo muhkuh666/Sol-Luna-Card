@@ -27,6 +27,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 
 **3D**
 - **Himmelskuppel & Haus**: dein Haus (Satteldach, Größe, Ausrichtung und PV-Module einstellbar) unter einer Halbkugel mit Sonne, Mond, sichtbaren Planeten und hellen Sternen, mit Schattenwurf und den Sonnenbahnen für heute, Sommer und Winter. Ziehen zum Drehen, Regler für die Uhrzeit.
+- **Echtes Haus importieren**: amtliche LoD2-Gebäudemodelle (CityJSON) oder eigenes OBJ-Modell.
 
 **Jahr**
 - **Tageslänge im Jahresverlauf** mit Markierung für heute.
@@ -103,7 +104,8 @@ language: auto
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planeten, Sternschnuppen, Finsternisse (Jahre voraus) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Jahr-Tab |
 | `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D-Tab |
-| `house_source`, `building_entity` | `generic`, – | `generic` = Haus aus den Maßen unten, `entity` = Gebäudemodell aus einer Entität mit Attribut `faces` (Liste aus `{t: 'r'|'w', p: [[x, y, z], …]}` in Metern) |
+| `house_source`, `house_model` | `generic`, – | `generic` = Haus aus den Maßen unten, `file` = **importiertes Modell** (LoD2/CityJSON, OBJ, JSON – siehe unten), `entity` = Flächen aus einem Entitäts-Attribut (`building_entity`) |
+| `model_rotation`, `model_scale`, `model_up` | `0`, `1`, `auto` | Ausrichtung importierter Modelle |
 | `pv_flat_roofs` | `false` | PV-Module auch auf Flachdächern zeichnen (echtes Modell) |
 | `roof_azimuth`, `roof_pitch` | `180`, `35` | Richtung der Hauptdachfläche (°), Dachneigung (°) |
 | `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | Hausmaße in Metern (Breite quer zum First) |
@@ -116,6 +118,31 @@ language: auto
 | `time_format`, `refresh_period` | `auto`, `60` | 12/24 h, Aktualisierung in Sekunden |
 | `*_color` | – | `sun_color`, `moon_color`, `golden_color`, `blue_color`, `curve_color`, `moon_curve_color`, `aurora_color` |
 | `latitude`, `longitude`, `time_zone` | aus HA | Standort überschreiben |
+
+### Eigenes 3D-Hausmodell importieren
+
+`house_source: file` setzen und mit `house_model` auf eine Datei in `/config/www` zeigen (erreichbar als `/local/…`):
+
+```yaml
+house_source: file
+house_model: /local/haus.json    # CityJSON (LoD2) oder /local/haus.obj
+model_rotation: 0                # Grad im Uhrzeigersinn, um Norden auszurichten (v. a. OBJ)
+model_scale: 1                   # 1 = Meter, 0.01 = Zentimeter
+model_up: auto                   # nur OBJ: auto | y (Blender-Standard) | z (SketchUp/CAD)
+pv_flat_roofs: false             # PV auch auf Flachdächern zeichnen
+```
+
+**LoD2 / CityJSON (amtliches Gebäudemodell)** – Die Vermessungsämter stellen LoD2-Gebäudemodelle kostenlos bereit. Dach-, Wand- und Bodenflächen sind gekennzeichnet, die Koordinaten sind echt (UTM oder WGS84). Die Karte wählt das Gebäude an deinem Home-Assistant-Standort (inklusive Gebäudeteilen wie Garagen) und setzt PV-Module auf die Dachflächen, die in Richtung `roof_azimuth` zeigen. Unterstützt werden CityJSON-Dokumente und CityJSONSeq (ein Feature pro Zeile). In Nordrhein-Westfalen kannst du dein Gebäude als CityJSON über die OGC-API von Geobasis NRW herunterladen, z. B. im Browser:
+
+```
+https://ogc-api.nrw.de/3dg/v1/collections/building/items?f=cityjson&bbox=<lon-0.0006>,<lat-0.0004>,<lon+0.0006>,<lat+0.0004>
+```
+
+Das Ergebnis als `/config/www/haus.json` speichern. CityGML-Dateien lassen sich mit den [citygml-tools](https://github.com/citygml4j/citygml-tools) in CityJSON umwandeln.
+
+**OBJ (eigenes Modell)** – Export aus Blender, SketchUp, SweetHome3D usw. Bauteile oder Materialien mit `Dach`/`roof` im Namen werden Dach, mit `PV`/`Solar`/`Panel`/`Modul` PV-Module; alles andere wird anhand der Neigung eingeordnet. Einheit sollte Meter sein (sonst `model_scale`), das Modell ungefähr um das Haus zentriert.
+
+**Einfaches JSON** – eine Liste von Flächen `[{ "t": "r"|"w"|"pv", "p": [[x, y, z], …] }, …]` in Metern (x = Ost, y = Nord, z = oben).
 
 ### Wolken & Abendrot
 

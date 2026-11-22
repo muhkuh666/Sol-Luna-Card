@@ -27,6 +27,7 @@ A Home Assistant card for the **sun, moon and sky**: daily sun and moon paths, a
 
 **3D**
 - **Sky dome & house**: your house (gable roof, size, orientation, PV modules configurable) under a hemisphere with sun, moon, visible planets and bright stars, a real-time shadow and sun paths for today, summer and winter. Drag to rotate, slider for the time of day.
+- **Import your real house**: official LoD2 building models (CityJSON) or your own OBJ model.
 
 **Year**
 - **Day length through the year** with a marker for today.
@@ -103,7 +104,8 @@ language: auto
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planets, meteor showers, eclipses (years ahead) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Year tab |
 | `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D tab |
-| `house_source`, `building_entity` | `generic`, – | `generic` = house from the sizes below, `entity` = building model from an entity with a `faces` attribute (list of `{t: 'r'|'w', p: [[x, y, z], …]}` in metres) |
+| `house_source`, `house_model` | `generic`, – | `generic` = house from the sizes below, `file` = **imported model** (LoD2/CityJSON, OBJ, JSON – see below), `entity` = faces from an entity attribute (`building_entity`) |
+| `model_rotation`, `model_scale`, `model_up` | `0`, `1`, `auto` | Alignment of imported models |
 | `pv_flat_roofs` | `false` | Also draw PV modules on flat roofs (real model) |
 | `roof_azimuth`, `roof_pitch` | `180`, `35` | Direction the main roof faces (°), roof pitch (°) |
 | `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | House size in metres (width across the ridge) |
@@ -116,6 +118,31 @@ language: auto
 | `time_format`, `refresh_period` | `auto`, `60` | 12/24 h, refresh in seconds |
 | `*_color` | – | `sun_color`, `moon_color`, `golden_color`, `blue_color`, `curve_color`, `moon_curve_color`, `aurora_color` |
 | `latitude`, `longitude`, `time_zone` | from HA | Override the location |
+
+### Import your own 3D house model
+
+Set `house_source: file` and point `house_model` to a file in `/config/www` (served as `/local/…`):
+
+```yaml
+house_source: file
+house_model: /local/house.json   # CityJSON (LoD2) or /local/house.obj
+model_rotation: 0                # degrees clockwise, to align north (mainly OBJ)
+model_scale: 1                   # 1 = metres, 0.01 = centimetres
+model_up: auto                   # OBJ only: auto | y (Blender default) | z (SketchUp/CAD)
+pv_flat_roofs: false             # also draw PV on flat roofs
+```
+
+**LoD2 / CityJSON (official building model)** – German surveying offices provide LoD2 building models for free. Roof, wall and ground surfaces are labelled, coordinates are real (UTM or WGS84). The card picks the building at your Home Assistant location (including building parts such as garages) and places PV modules on roof surfaces facing `roof_azimuth`. CityJSON documents and CityJSONSeq (one feature per line) are supported. In North Rhine-Westphalia you can download your building as CityJSON via the OGC API of Geobasis NRW, for example in the browser:
+
+```
+https://ogc-api.nrw.de/3dg/v1/collections/building/items?f=cityjson&bbox=<lon-0.0006>,<lat-0.0004>,<lon+0.0006>,<lat+0.0004>
+```
+
+Save the result as `/config/www/house.json`. CityGML files can be converted to CityJSON with [citygml-tools](https://github.com/citygml4j/citygml-tools).
+
+**OBJ (your own model)** – export from Blender, SketchUp, SweetHome3D etc. Parts or materials whose name contains `roof`/`Dach` become roof, `PV`/`solar`/`panel`/`Modul` become PV modules; everything else is classified by its slope. Units should be metres (otherwise use `model_scale`), and the model should be centred roughly on the house.
+
+**Simple JSON** – a list of faces `[{ "t": "r"|"w"|"pv", "p": [[x, y, z], …] }, …]` in metres (x = east, y = north, z = up).
 
 ### Clouds & sunset glow
 

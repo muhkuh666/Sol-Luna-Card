@@ -3,6 +3,7 @@
  * ====================================================================== */
 const STR = {
   de: {
+    modelLoading: 'Modell wird geladen …', modelError: 'Modell konnte nicht geladen werden',
     model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
@@ -47,6 +48,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    modelLoading: 'Loading model …', modelError: 'Model could not be loaded',
     model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
@@ -91,6 +93,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    modelLoading: 'Model laden …', modelError: 'Model kon niet worden geladen',
     model3d: 'Hemelkoepel & huis', hint3d: 'Slepen om te draaien · schuif = tijd',
     activity: 'Activiteit',
     title: 'Zon & Maan',
@@ -131,6 +134,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    modelLoading: 'Chargement du modèle …', modelError: 'Impossible de charger le modèle',
     model3d: 'Voûte céleste & maison', hint3d: 'Glisser pour pivoter · curseur = heure',
     activity: 'Activité',
     title: 'Soleil & Lune',
@@ -171,6 +175,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    modelLoading: 'Laddar modell …', modelError: 'Modellen kunde inte laddas',
     model3d: 'Himlavalv & hus', hint3d: 'Dra för att rotera · reglage = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
@@ -211,6 +216,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    modelLoading: 'Laster modell …', modelError: 'Modellen kunne ikke lastes',
     model3d: 'Himmelkuppel & hus', hint3d: 'Dra for å rotere · glidebryter = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
@@ -251,6 +257,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    modelLoading: 'Henter model …', modelError: 'Modellen kunne ikke indlæses',
     model3d: 'Himmelkuppel & hus', hint3d: 'Træk for at rotere · skyder = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',

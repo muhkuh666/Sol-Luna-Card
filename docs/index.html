@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.2.1';
+const VERSION = '2.3.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -683,6 +683,7 @@ function parseHorizon(src, pvgisSouth = false) {
  * ====================================================================== */
 const STR = {
   de: {
+    modelLoading: 'Modell wird geladen …', modelError: 'Modell konnte nicht geladen werden',
     model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
@@ -727,6 +728,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    modelLoading: 'Loading model …', modelError: 'Model could not be loaded',
     model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
@@ -771,6 +773,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    modelLoading: 'Model laden …', modelError: 'Model kon niet worden geladen',
     model3d: 'Hemelkoepel & huis', hint3d: 'Slepen om te draaien · schuif = tijd',
     activity: 'Activiteit',
     title: 'Zon & Maan',
@@ -811,6 +814,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    modelLoading: 'Chargement du modèle …', modelError: 'Impossible de charger le modèle',
     model3d: 'Voûte céleste & maison', hint3d: 'Glisser pour pivoter · curseur = heure',
     activity: 'Activité',
     title: 'Soleil & Lune',
@@ -851,6 +855,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    modelLoading: 'Laddar modell …', modelError: 'Modellen kunde inte laddas',
     model3d: 'Himlavalv & hus', hint3d: 'Dra för att rotera · reglage = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
@@ -891,6 +896,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    modelLoading: 'Laster modell …', modelError: 'Modellen kunne ikke lastes',
     model3d: 'Himmelkuppel & hus', hint3d: 'Dra for å rotere · glidebryter = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
@@ -931,6 +937,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    modelLoading: 'Henter model …', modelError: 'Modellen kunne ikke indlæses',
     model3d: 'Himmelkuppel & hus', hint3d: 'Træk for at rotere · skyder = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
@@ -1063,7 +1070,11 @@ const DEFAULTS = {
   // 3D-Tab
   show_3d_tab: true,
   show_house: true,
-  house_source: 'generic',     // generic | entity (Gebäudemodell aus Entität mit Attribut faces)
+  house_source: 'generic',     // generic | file (CityJSON/LoD2, OBJ, JSON) | entity (Attribut faces)
+  house_model: '',             // z. B. /local/haus.json oder /local/haus.obj
+  model_up: 'auto',            // auto | y | z (nur OBJ)
+  model_scale: 1,              // 1 = Meter, 0.01 = Zentimeter …
+  model_rotation: 0,           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
   building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First
@@ -2596,6 +2607,7 @@ Object.assign(SolLunaCard.prototype, {
     .c3d { width:100%; display:block; touch-action:none; cursor:grab; }
     .c3d:active { cursor:grabbing; }
     .c3dhint { font-size:.7em; color:var(--slc-sub); text-align:center; margin-top:4px; }
+    .merr { color:#ff9b9b; }
     .t3time { margin-left:auto; font-weight:600; color:var(--slc-sub); font-variant-numeric:tabular-nums; }
     .cline { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:.82em; color:var(--slc-text); font-variant-numeric:tabular-nums; }
     .cline span { display:inline-flex; align-items:center; gap:5px; }
@@ -2640,15 +2652,40 @@ function convexHull(pts) {
 
 Object.assign(SolLunaCard.prototype, {
 
-  _buildingFaces() {
+  _rawHouseFaces() {
     const c = this._config;
-    if (c.house_source !== 'entity' || !c.building_entity) return null;
-    const st = this._hass?.states?.[c.building_entity];
-    const faces = st?.attributes?.faces;
-    if (!Array.isArray(faces) || !faces.length) return null;
-    return this._cached('bld|' + c.building_entity + '|' + st.last_updated, () => {
+    this._modelStatus = null;
+    if (c.house_source === 'entity' && c.building_entity) {
+      const st = this._hass?.states?.[c.building_entity];
+      const faces = st?.attributes?.faces;
+      return Array.isArray(faces) && faces.length ? { key: 'e|' + c.building_entity + '|' + st.last_updated, faces: () => faces } : null;
+    }
+    if (c.house_source === 'file' && c.house_model) {
+      const url = String(c.house_model).trim();
+      const slot = loadModelText(url, () => { if (this.isConnected) this._render(); });
+      if (slot.state === 'loading') { this._modelStatus = 'loading'; return null; }
+      if (slot.state === 'error') { this._modelStatus = slot.error; return null; }
+      const X = this._ctx();
+      const key = ['f', url, c.model_up, c.model_scale, c.model_rotation, X.lat, X.lng].join('|');
+      return {
+        key, faces: () => {
+          try { return parseHouseModel(slot.text, url, { up: c.model_up, scale: c.model_scale, rotation: c.model_rotation, lat: X.lat, lon: X.lng }); }
+          catch (e) { console.error('sol-luna-card model', e); return { error: String(e.message || e) }; }
+        },
+      };
+    }
+    return null;
+  },
+
+  _buildingFaces() {
+    const src = this._rawHouseFaces();
+    if (!src) return null;
+    const res = this._cached('bld|' + src.key, () => {
+      const faces = src.faces();
+      if (!Array.isArray(faces)) return faces;
       const out = [];
       const all = faces.flatMap((f) => f.p || []);
+      if (!all.length) return { error: 'leer' };
       const cxy = [all.reduce((s, p) => s + p[0], 0) / all.length, all.reduce((s, p) => s + p[1], 0) / all.length];
       for (const f of faces) {
         if (!Array.isArray(f.p) || f.p.length < 3 || f.t === 'g') continue;
@@ -2659,15 +2696,25 @@ Object.assign(SolLunaCard.prototype, {
           const a = pts[i], b = pts[(i + 1) % pts.length];
           n[0] += (a[1] - b[1]) * (a[2] + b[2]); n[1] += (a[2] - b[2]) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
         }
+        if (Math.hypot(n[0], n[1], n[2]) < 1e-9) continue;
         n = V3.norm(n);
         const cen = V3.mul(pts.reduce((s, p) => V3.add(s, p), [0, 0, 0]), 1 / pts.length);
-        if (f.t === 'r') { if (n[2] < 0) n = V3.mul(n, -1); }
+        let t = f.t;
+        if (!t) {
+          if (Math.abs(n[2]) > 0.25 && cen[2] > 0.8) t = 'r';
+          else if (n[2] < -0.7 && cen[2] < 0.3) continue;
+          else t = 'w';
+        }
+        if (t === 'r' || t === 'pv') { if (n[2] < 0) n = V3.mul(n, -1); }
         else if (V3.dot(n, [cen[0] - cxy[0], cen[1] - cxy[1], 0]) < 0) n = V3.mul(n, -1);
-        out.push({ kind: f.t === 'r' ? 'mroof' : 'mwall', pts, n });
+        out.push({ kind: t === 'pv' ? 'mpv' : t === 'r' ? 'mroof' : 'mwall', pts, n });
       }
+      if (!out.length) return { error: 'keine Flächen' };
       const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
-      return { faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
+      return { hasPv: out.some((f) => f.kind === 'mpv'), faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
     });
+    if (res && res.error) { this._modelStatus = res.error; return null; }
+    return res;
   },
 
   _t3(D) {
@@ -2681,8 +2728,15 @@ Object.assign(SolLunaCard.prototype, {
         <div class="tilehead"><ha-icon icon="mdi:home-variant-outline"></ha-icon>${esc(t.model3d)} <span class="t3time">${esc(F.date(t3))} ${F.time(t3)}</span></div>
         <div class="c3dwrap"><canvas class="c3d"></canvas></div>
         <input type="range" class="skyrange t3range" data-action="t3d" min="${D.start}" max="${D.end}" step="${10 * MIN_MS}" value="${t3}">
-        <div class="c3dhint">${esc(t.hint3d)}</div>
+        <div class="c3dhint">${esc(t.hint3d)}${this._modelStatusHtml(t)}</div>
       </div>`;
+  },
+
+  _modelStatusHtml(t) {
+    this._buildingFaces();
+    const st = this._modelStatus;
+    if (!st) return '';
+    return st === 'loading' ? ` · ${esc(t.modelLoading)}` : `<br><span class="merr">⚠ ${esc(t.modelError)}: ${esc(st)}</span>`;
   },
 
   _after3d(D) {
@@ -2750,7 +2804,7 @@ Object.assign(SolLunaCard.prototype, {
     const pitch = clamp(Number(c.roof_pitch ?? 35), 0, 65);
     const rh = hw / 2 * Math.tan(pitch * RAD);
     const model = c.show_house === false ? null : this._buildingFaces();
-    const R = model ? Math.max(model.ext * 1.6, model.height * 2.2, 14) : Math.max(hw, hl, wh + rh) * 2.2;
+    const R = model ? Math.max(model.ext * 1.8, model.height * 2.4, 18) : Math.max(hw, hl, wh + rh) * 2.2;
 
     // ---- Kamera
     const yaw = (this._yaw3d ?? 105) * RAD, pit = clamp(this._pitch3d ?? 30, 4, 80) * RAD;
@@ -2924,15 +2978,16 @@ Object.assign(SolLunaCard.prototype, {
     // ---- Haus zeichnen
     const vis = faces.map((fc) => {
       const cen = V3.mul(fc.pts.reduce((a, p) => V3.add(a, p), [0, 0, 0]), 1 / fc.pts.length);
-      return { ...fc, cen, depth: P(cen)[2], facing: V3.dot(fc.n, V3.sub(cam, cen)) > 0 };
+      return { ...fc, cen, depth: P(cen)[2] - (fc.kind === 'mpv' ? R * 0.05 : 0), facing: V3.dot(fc.n, V3.sub(cam, cen)) > 0 };
     }).filter((fc) => fc.facing).sort((a, b) => b.depth - a.depth);
     const amb = 0.3 + 0.32 * day;
     for (const fc of vis) {
       const isRoof = fc.kind === 'roof' || fc.kind === 'mroof';
-      const base = isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
+      const base = fc.kind === 'mpv' ? (c.pv_color || '#1d3557') : isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
       g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
       line3(fc.pts, true); g.fill();
-      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke();
+      if (fc.pts.length > 3 && vis.length < 400) { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke(); }
+      else { g.strokeStyle = g.fillStyle; g.lineWidth = 0.7; g.stroke(); }
       // PV-Module auf der Hauptdachfläche
       if (fc.kind === 'roof' && fc.main && c.show_pv) {
         const lerp3 = (a, b, x) => V3.add(a, V3.mul(V3.sub(b, a), x));
@@ -2946,7 +3001,7 @@ Object.assign(SolLunaCard.prototype, {
         line3([lerp3(q[0], q[3], 0.5), lerp3(q[1], q[2], 0.5)]); g.stroke();
       }
       // PV auf echten Dachflächen: alle Flächen, die ungefähr in Richtung roof_azimuth zeigen
-      if (fc.kind === 'mroof' && c.show_pv) {
+      if (fc.kind === 'mroof' && c.show_pv && !model.hasPv) {
         const tilt = Math.acos(clamp(fc.n[2], -1, 1)) * DEG;
         const naz = norm360(Math.atan2(fc.n[0], fc.n[1]) * DEG);
         if ((tilt > 8 && Math.abs(wrap180(naz - Number(c.roof_azimuth ?? 180))) <= 50) || (tilt <= 8 && c.pv_flat_roofs)) {
@@ -2980,6 +3035,184 @@ Object.assign(SolLunaCard.prototype, {
 });
 
 /* ====================================================================== *
+ *  3D-Hausmodell importieren: CityJSON (LoD2), OBJ, einfaches JSON        *
+ * ====================================================================== */
+const MODELS = new Map();   // url -> { state: 'loading'|'ok'|'error', text, error, listeners }
+
+function loadModelText(url, onDone) {
+  let slot = MODELS.get(url);
+  if (!slot) {
+    slot = { state: 'loading', listeners: new Set() };
+    MODELS.set(url, slot);
+    fetch(url, { cache: 'no-cache' })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+      .then((txt) => { slot.text = txt; slot.state = 'ok'; })
+      .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; })
+      .finally(() => { slot.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); slot.listeners.clear(); });
+  }
+  if (slot.state === 'loading' && onDone) slot.listeners.add(onDone);
+  return slot;
+}
+
+/** Geografische Koordinaten → UTM (ETRS89 ≈ WGS84) */
+function latLonToUtm(lat, lon, zone) {
+  const a = 6378137, f = 1 / 298.257222101, e2 = f * (2 - f), k0 = 0.9996;
+  const lon0 = (zone * 6 - 183) * RAD, phi = lat * RAD, lam = lon * RAD;
+  const n = a / Math.sqrt(1 - e2 * Math.sin(phi) ** 2), t = Math.tan(phi) ** 2, ep2 = e2 / (1 - e2);
+  const c = ep2 * Math.cos(phi) ** 2, A = Math.cos(phi) * (lam - lon0);
+  const m = a * ((1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * phi - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * phi)
+    + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * phi) - (35 * e2 ** 3 / 3072) * Math.sin(6 * phi));
+  const x = k0 * n * (A + (1 - t + c) * A ** 3 / 6 + (5 - 18 * t + t * t + 72 * c - 58 * ep2) * A ** 5 / 120) + 500000;
+  const y = k0 * (m + n * Math.tan(phi) * (A * A / 2 + (5 - t + 9 * c + 4 * c * c) * A ** 4 / 24 + (61 - 58 * t + t * t + 600 * c - 330 * ep2) * A ** 6 / 720));
+  return [x, y];
+}
+
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/* ---------- CityJSON / CityJSONSeq (LoD2) -------------------------------- */
+function cityjsonSurfaces(geom) {
+  const out = [];
+  const b = geom.boundaries || [], sem = geom.semantics || {}, types = (sem.surfaces || []).map((s) => s.type || ''), vals = sem.values;
+  const kind = (i) => (Number.isInteger(i) && types[i]) || '';
+  if (geom.type === 'MultiSurface' || geom.type === 'CompositeSurface') b.forEach((s, i) => out.push([s[0], kind(vals ? vals[i] : null)]));
+  else if (geom.type === 'Solid') b.forEach((sh, si) => sh.forEach((s, i) => out.push([s[0], kind(vals ? vals[si][i] : null)])));
+  else if (geom.type === 'MultiSolid' || geom.type === 'CompositeSolid') {
+    b.forEach((so, oi) => so.forEach((sh, si) => sh.forEach((s, i) => out.push([s[0], kind(vals ? vals[oi][si][i] : null)]))));
+  }
+  return out;
+}
+
+function parseCityJSON(text, lat, lon) {
+  const t = text.trim();
+  let docs;
+  try { docs = [JSON.parse(t)]; } catch (e) { docs = t.split(/\r?\n/).filter((l) => l.trim()).map((l) => JSON.parse(l)); }
+  let baseTr = null, crsHint = '';
+  const buildings = [];
+  for (const doc of docs) {
+    if (doc.type === 'CityJSON' && doc.transform) baseTr = doc.transform;
+    crsHint += JSON.stringify(doc.metadata?.referenceSystem || '');
+    const tr = doc.transform || baseTr || { scale: [1, 1, 1], translate: [0, 0, 0] };
+    const V = (doc.vertices || []).map((v) => [v[0] * tr.scale[0] + tr.translate[0], v[1] * tr.scale[1] + tr.translate[1], v[2] * tr.scale[2] + tr.translate[2]]);
+    const objs = doc.CityObjects || {};
+    for (const [id, obj] of Object.entries(objs)) {
+      if (!/^Building/.test(obj.type) || obj.type === 'BuildingPart' || (obj.parents && obj.parents.length)) continue;
+      const surfs = [];
+      for (const cid of [id, ...(obj.children || [])]) {
+        const geoms = objs[cid]?.geometry || [];
+        const lod2 = geoms.filter((g) => String(g.lod || '').startsWith('2'));
+        for (const g of (lod2.length ? lod2 : geoms)) {
+          for (const [ring, k] of cityjsonSurfaces(g)) {
+            const pts = ring.map((i) => V[i]).filter(Boolean);
+            if (pts.length >= 3) surfs.push([pts, k]);
+          }
+        }
+      }
+      if (surfs.length) buildings.push({ id, surfs });
+    }
+  }
+  if (!buildings.length) throw new Error('Kein Gebäude in der CityJSON-Datei');
+  const s0 = buildings[0].surfs[0][0][0];
+  const deg = Math.abs(s0[0]) <= 180 && Math.abs(s0[1]) <= 90;
+  const kLon = 111320 * Math.cos(lat * RAD), kLat = 111320;
+  const xy = (p) => (deg ? [(p[0] - lon) * kLon, (p[1] - lat) * kLat] : [p[0], p[1]]);
+  let home = [0, 0];
+  if (!deg) {
+    const zone = /25833|5556|3045|zone\s*33/i.test(crsHint) ? 33 : /25831|zone\s*31/i.test(crsHint) ? 31 : Math.floor((lon + 180) / 6) + 1;
+    home = latLonToUtm(lat, lon, zone);
+  }
+  const footprint = (b) => {
+    const g = b.surfs.find(([, k]) => k === 'GroundSurface');
+    if (g) return g[0].map(xy);
+    const all = b.surfs.flatMap(([p]) => p.map(xy));
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    return [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)], [Math.min(...xs), Math.max(...ys)]];
+  };
+  const cen = (poly) => [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length];
+  let chosen = buildings.find((b) => pointInPoly(home[0], home[1], footprint(b)));
+  if (!chosen) {
+    chosen = buildings.reduce((best, b) => {
+      const c = cen(footprint(b)), d = (c[0] - home[0]) ** 2 + (c[1] - home[1]) ** 2;
+      return !best || d < best.d ? { b, d } : best;
+    }, null).b;
+  }
+  const [cx, cy] = cen(footprint(chosen));
+  const zmin = Math.min(...chosen.surfs.flatMap(([p]) => p.map((q) => q[2])));
+  return chosen.surfs.map(([pts, k]) => ({
+    t: k === 'RoofSurface' ? 'r' : k === 'GroundSurface' ? 'g' : 'w',
+    p: pts.map((p) => { const [x, y] = xy(p); return [x - cx, y - cy, p[2] - zmin]; }),
+  }));
+}
+
+/* ---------- OBJ -------------------------------------------------------------- */
+function parseOBJ(text, up) {
+  const V = [];
+  const faces = [];
+  let group = '', mtl = '';
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line[0] === '#') continue;
+    const parts = line.split(/\s+/);
+    const key = parts[0];
+    if (key === 'v') V.push([Number(parts[1]), Number(parts[2]), Number(parts[3])]);
+    else if (key === 'g' || key === 'o') group = parts.slice(1).join(' ');
+    else if (key === 'usemtl') mtl = parts.slice(1).join(' ');
+    else if (key === 'f') {
+      const idx = parts.slice(1).map((p) => { const i = parseInt(p.split('/')[0], 10); return i < 0 ? V.length + i : i - 1; });
+      if (idx.length >= 3) faces.push({ idx, name: `${group} ${mtl}`.toLowerCase() });
+    }
+  }
+  if (!faces.length) throw new Error('Keine Flächen in der OBJ-Datei');
+  // Achsen: Y-oben (Blender-Standard: x Ost, -z Nord) oder Z-oben (x Ost, y Nord)
+  let mode = up;
+  if (mode !== 'y' && mode !== 'z') {
+    const ys = V.map((v) => v[1]), zs = V.map((v) => v[2]);
+    const minY = Math.min(...ys), minZ = Math.min(...zs);
+    // Boden meist bei 0 bzw. kleinster Wert; wählt die Achse, deren Unterseite die meisten Punkte teilt
+    const atMin = (arr, mn) => arr.filter((x) => Math.abs(x - mn) < 0.05 * (Math.max(...arr) - mn || 1)).length;
+    mode = atMin(zs, minZ) > atMin(ys, minY) ? 'z' : 'y';
+  }
+  const P = V.map((v) => (mode === 'z' ? [v[0], v[1], v[2]] : [v[0], -v[2], v[1]]));
+  return faces.map((f) => {
+    const pts = f.idx.map((i) => P[i]).filter(Boolean);
+    let t = '';
+    if (/pv|solar|panel|modul/.test(f.name)) t = 'pv';
+    else if (/roof|dach/.test(f.name)) t = 'r';
+    else if (/ground|boden|floor/.test(f.name)) t = 'g';
+    return { t, p: pts };
+  }).filter((f) => f.p.length >= 3);
+}
+
+/** Text → Flächenliste {t:'r'|'w'|'g'|'pv'|'', p:[[x,y,z]…]} in lokalen Metern */
+function parseHouseModel(text, url, opts) {
+  const head = text.slice(0, 2000).trim();
+  let faces;
+  if (/\.obj(\?|$)/i.test(url) || /^(#|v |o |g |mtllib)/m.test(head) && !head.startsWith('{') && !head.startsWith('[')) {
+    faces = parseOBJ(text, opts.up);
+  } else {
+    const first = head.startsWith('[') ? null : (() => { try { return JSON.parse(text); } catch (e) { return null; } })();
+    if (Array.isArray(first) || (head.startsWith('[') && Array.isArray(JSON.parse(text)))) faces = JSON.parse(text);
+    else if (first && Array.isArray(first.faces)) faces = first.faces;
+    else faces = parseCityJSON(text, opts.lat, opts.lon);
+  }
+  // Skalierung, Drehung, Zentrierung, Boden auf 0
+  const sc = Number(opts.scale) || 1, rot = (Number(opts.rotation) || 0) * RAD;
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+  faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [(x * cr + y * sr) * sc, (-x * sr + y * cr) * sc, z * sc]); });
+  const all = faces.flatMap((f) => f.p);
+  const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, z0 = Math.min(...zs);
+  faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [x - cx, y - cy, z - z0]); });
+  return faces;
+}
+
+/* ====================================================================== *
  *  GRAFISCHER EDITOR                                                      *
  * ====================================================================== */
 const ED_STR = {
@@ -3004,7 +3237,9 @@ const ED_STR = {
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
-    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_entity: 'Echtes Gebäudemodell (Entität)', building_entity: 'Gebäudemodell-Entität', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_file: 'Importiertes Modell (LoD2/CityJSON oder OBJ)', hs_entity: 'Modell aus Entität (Attribut faces)', building_entity: 'Gebäudemodell-Entität',
+    house_model: 'Modell-Datei (z. B. /local/haus.json)', model_up: 'Achse oben (OBJ)', mu_auto: 'Automatisch', model_scale: 'Maßstab (1 = Meter, 0.01 = cm)', model_rotation: 'Drehung (°)',
+    modelHint: 'Datei nach /config/www kopieren und als /local/Dateiname eintragen. LoD2: CityJSON vom Vermessungsamt. OBJ: Bauteile mit „Dach“ bzw. „PV“ im Namen werden erkannt.', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
     house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
     show_pv: 'PV-Module auf dem Hauptdach', pv_flat_roofs: 'PV auch auf Flachdächern (z. B. Garage)', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
@@ -3044,7 +3279,9 @@ const ED_STR = {
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
-    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_entity: 'Real building model (entity)', building_entity: 'Building model entity', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_file: 'Imported model (LoD2/CityJSON or OBJ)', hs_entity: 'Model from entity (faces attribute)', building_entity: 'Building model entity',
+    house_model: 'Model file (e.g. /local/house.json)', model_up: 'Up axis (OBJ)', mu_auto: 'Automatic', model_scale: 'Scale (1 = metres, 0.01 = cm)', model_rotation: 'Rotation (°)',
+    modelHint: 'Copy the file to /config/www and enter it as /local/filename. LoD2: CityJSON from the surveying office. OBJ: parts named “roof” or “PV” are detected.', roof_azimuth: 'Main roof orientation (°, 180 = south)',
     house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
     show_pv: 'PV modules on main roof', pv_flat_roofs: 'PV on flat roofs too (e.g. garage)', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
@@ -3140,7 +3377,10 @@ class SolLunaCardEditor extends HTMLElement {
         `<label class="f"><span>${esc(T.weather_entity)}</span><input data-k="weather_entity" type="text" list="wxlist" placeholder="weather.…"></label>` +
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
-      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['entity', T.hs_entity]]) +
+      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['file', T.hs_file], ['entity', T.hs_entity]]) +
+        `<label class="f wide"><span>${esc(T.house_model)}</span><input data-k="house_model" type="text" placeholder="/local/haus.json"></label>` +
+        sel('model_up', [['auto', T.mu_auto], ['y', 'Y'], ['z', 'Z']]) + num('model_rotation', '1', '0') + num('model_scale', 'any', '1') + '<span></span>' +
+        `<div class="hint">${esc(T.modelHint)}</div>` +
         `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.…"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
         sw('show_pv') + sw('pv_flat_roofs') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
@@ -3256,7 +3496,8 @@ const DEMOS=[
  {cap:'Heute – Live / gewählte Zeit', live:true, cfg:{}, aur:QUIET},
  {cap:'Tab „Nacht“ (21.11., 20:00)', now:'2026-11-21T20:00:00+01:00', cfg:{default_tab:'night'}, aur:QUIET},
  {cap:'Tab „3D“ – Mittag (21.11., 12:30)', now:'2026-11-21T12:30:00+01:00', cfg:{default_tab:'sky3d'}, aur:QUIET},
- {cap:'Tab „3D“ – echtes Gebäudemodell (LoD2, Beispiel), 15:00', now:'2026-11-21T15:00:00+01:00', cfg:{default_tab:'sky3d', pv_flat_roofs:true, house_source:'entity', building_entity:'sensor.sol_luna_gebaudemodell', horizon_source:'manual', horizon_profile:HZ}, aur:QUIET},
+ {cap:'Tab „3D“ – LoD2-Import (CityJSON, Beispiel mit Nachbarhaus), 15:00', now:'2026-11-21T15:00:00+01:00', cfg:{default_tab:'sky3d', pv_flat_roofs:true, house_source:'file', house_model:'demo/haus-lod2.json', horizon_source:'manual', horizon_profile:HZ}, aur:QUIET},
+ {cap:'Tab „3D“ – OBJ-Import (Dach & PV als Bauteile), 11:00', now:'2026-11-21T11:00:00+01:00', cfg:{default_tab:'sky3d', house_source:'file', house_model:'demo/haus.obj'}, aur:QUIET},
  {cap:'Tab „Jahr“ (Light Mode)', now:'2026-11-21T12:00:00+01:00', cfg:{default_tab:'year', background:'light'}, aur:QUIET},
  {cap:'Goldene Stunde mit Wolken & echtem Horizont', now:'2026-11-21T16:05:00+01:00', cfg:{horizon_source:'manual', horizon_profile:HZ}, aur:QUIET},
  {cap:'Polarlicht-Nacht, Kp 7 (Dark Mode)', now:'2026-11-24T22:30:00+01:00', cfg:{background:'dark'}, aur:STORM},

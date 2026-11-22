@@ -79,7 +79,11 @@ const DEFAULTS = {
   // 3D-Tab
   show_3d_tab: true,
   show_house: true,
-  house_source: 'generic',     // generic | entity (Gebäudemodell aus Entität mit Attribut faces)
+  house_source: 'generic',     // generic | file (CityJSON/LoD2, OBJ, JSON) | entity (Attribut faces)
+  house_model: '',             // z. B. /local/haus.json oder /local/haus.obj
+  model_up: 'auto',            // auto | y | z (nur OBJ)
+  model_scale: 1,              // 1 = Meter, 0.01 = Zentimeter …
+  model_rotation: 0,           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
   building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First

@@ -580,6 +580,7 @@ Object.assign(SolLunaCard.prototype, {
     .c3d { width:100%; display:block; touch-action:none; cursor:grab; }
     .c3d:active { cursor:grabbing; }
     .c3dhint { font-size:.7em; color:var(--slc-sub); text-align:center; margin-top:4px; }
+    .merr { color:#ff9b9b; }
     .t3time { margin-left:auto; font-weight:600; color:var(--slc-sub); font-variant-numeric:tabular-nums; }
     .cline { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:.82em; color:var(--slc-text); font-variant-numeric:tabular-nums; }
     .cline span { display:inline-flex; align-items:center; gap:5px; }
