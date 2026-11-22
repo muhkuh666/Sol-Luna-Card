@@ -3,6 +3,7 @@
  * ====================================================================== */
 const STR = {
   de: {
+    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
@@ -26,7 +27,7 @@ const STR = {
     maxKp: 'Max. Kp', chanceGood: 'Polarlicht am Nordhorizont möglich', chanceMaybe: 'evtl. mit Kamera sichtbar',
     chanceLow: (n) => `hier unwahrscheinlich (ab ca. Kp ${n})`, source: 'Quelle', loading: 'Lade Daten …',
     noaaError: 'NOAA-Daten nicht erreichbar', butCloudy: 'aber bewölkt',
-    tabs: { today: 'Heute', night: 'Nacht', year: 'Jahr' }, now: 'Jetzt',
+    tabs: { today: 'Heute', night: 'Nacht', year: 'Jahr', sky3d: '3D' }, now: 'Jetzt',
     clouds: 'Wolken', skyTonight: 'Himmel heute Nacht', cloudClasses: ['Klar', 'Teils bewölkt', 'Bedeckt'],
     glowEvening: 'Abendrot', glowMorning: 'Morgenrot', overTerrain: 'über Gelände',
     astroNight: 'Astronomische Nacht', moonFree: 'mondfrei', noAstroNight: 'Keine astronomische Nacht', darkHours: 'Dunkelheit',
@@ -46,6 +47,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],
@@ -69,7 +71,7 @@ const STR = {
     maxKp: 'Max Kp', chanceGood: 'aurora possible on the horizon', chanceMaybe: 'maybe visible on camera',
     chanceLow: (n) => `unlikely here (needs ~Kp ${n})`, source: 'Source', loading: 'Loading data …',
     noaaError: 'NOAA data unavailable', butCloudy: 'but cloudy',
-    tabs: { today: 'Today', night: 'Night', year: 'Year' }, now: 'Now',
+    tabs: { today: 'Today', night: 'Night', year: 'Year', sky3d: '3D' }, now: 'Now',
     clouds: 'Clouds', skyTonight: 'Sky tonight', cloudClasses: ['Clear', 'Partly cloudy', 'Overcast'],
     glowEvening: 'Sunset glow', glowMorning: 'Sunrise glow', overTerrain: 'over terrain',
     astroNight: 'Astronomical night', moonFree: 'moon-free', noAstroNight: 'No astronomical night', darkHours: 'Darkness',
@@ -89,6 +91,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    model3d: 'Hemelkoepel & huis', hint3d: 'Slepen om te draaien · schuif = tijd',
     activity: 'Activiteit',
     title: 'Zon & Maan',
     bands: ['Nacht', 'Schemering', 'Blauw uur', 'Gouden uur', 'Dag'],
@@ -109,7 +112,7 @@ const STR = {
     kpWords: ['rustig', 'rustig', 'rustig', 'rustig', 'matig', 'matig · G1', 'actief · G2', 'actief · G3', 'zeer actief · G4', 'zeer actief · G5'],
     maxKp: 'Max. Kp', chanceGood: 'noorderlicht aan de horizon mogelijk', chanceMaybe: 'mogelijk op camera zichtbaar',
     chanceLow: (n) => `hier onwaarschijnlijk (vanaf ca. Kp ${n})`, source: 'Bron', loading: 'Gegevens laden …', butCloudy: 'maar bewolkt',
-    tabs: { today: 'Vandaag', night: 'Nacht', year: 'Jaar' }, now: 'Nu',
+    tabs: { today: 'Vandaag', night: 'Nacht', year: 'Jaar', sky3d: '3D' }, now: 'Nu',
     clouds: 'Bewolking', skyTonight: 'Hemel vannacht', cloudClasses: ['Helder', 'Half bewolkt', 'Bewolkt'],
     glowEvening: 'Avondrood', glowMorning: 'Ochtendrood', overTerrain: 'boven terrein',
     astroNight: 'Astronomische nacht', moonFree: 'maanloos', noAstroNight: 'Geen astronomische nacht', darkHours: 'Duisternis',
@@ -128,6 +131,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    model3d: 'Voûte céleste & maison', hint3d: 'Glisser pour pivoter · curseur = heure',
     activity: 'Activité',
     title: 'Soleil & Lune',
     bands: ['Nuit', 'Crépuscule', 'Heure bleue', 'Heure dorée', 'Jour'],
@@ -148,7 +152,7 @@ const STR = {
     kpWords: ['calme', 'calme', 'calme', 'calme', 'modéré', 'modéré · G1', 'actif · G2', 'actif · G3', 'très actif · G4', 'très actif · G5'],
     maxKp: 'Kp max', chanceGood: "aurore possible à l'horizon", chanceMaybe: 'peut-être visible en photo',
     chanceLow: (n) => `peu probable ici (Kp ~${n} requis)`, source: 'Source', loading: 'Chargement …', butCloudy: 'mais nuageux',
-    tabs: { today: "Aujourd'hui", night: 'Nuit', year: 'Année' }, now: 'Maintenant',
+    tabs: { today: "Aujourd'hui", night: 'Nuit', year: 'Année', sky3d: '3D' }, now: 'Maintenant',
     clouds: 'Nuages', skyTonight: 'Ciel cette nuit', cloudClasses: ['Dégagé', 'Partiellement nuageux', 'Couvert'],
     glowEvening: 'Ciel rouge du soir', glowMorning: 'Ciel rouge du matin', overTerrain: 'au-dessus du relief',
     astroNight: 'Nuit astronomique', moonFree: 'sans lune', noAstroNight: 'Pas de nuit astronomique', darkHours: 'Obscurité',
@@ -167,6 +171,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    model3d: 'Himlavalv & hus', hint3d: 'Dra för att rotera · reglage = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skymning', 'Blå timmen', 'Gyllene timmen', 'Dag'],
@@ -187,7 +192,7 @@ const STR = {
     kpWords: ['lugnt', 'lugnt', 'lugnt', 'lugnt', 'måttligt', 'måttligt · G1', 'aktivt · G2', 'aktivt · G3', 'mycket aktivt · G4', 'mycket aktivt · G5'],
     maxKp: 'Max Kp', chanceGood: 'norrsken möjligt vid horisonten', chanceMaybe: 'kanske synligt med kamera',
     chanceLow: (n) => `osannolikt här (kräver ~Kp ${n})`, source: 'Källa', loading: 'Laddar …', butCloudy: 'men molnigt',
-    tabs: { today: 'Idag', night: 'Natt', year: 'År' }, now: 'Nu',
+    tabs: { today: 'Idag', night: 'Natt', year: 'År', sky3d: '3D' }, now: 'Nu',
     clouds: 'Moln', skyTonight: 'Himlen i natt', cloudClasses: ['Klart', 'Halvklart', 'Mulet'],
     glowEvening: 'Kvällsrodnad', glowMorning: 'Morgonrodnad', overTerrain: 'över terrängen',
     astroNight: 'Astronomisk natt', moonFree: 'månfri', noAstroNight: 'Ingen astronomisk natt', darkHours: 'Mörker',
@@ -206,6 +211,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    model3d: 'Himmelkuppel & hus', hint3d: 'Dra for å rotere · glidebryter = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skumring', 'Blåtime', 'Gyllen time', 'Dag'],
@@ -226,7 +232,7 @@ const STR = {
     kpWords: ['rolig', 'rolig', 'rolig', 'rolig', 'moderat', 'moderat · G1', 'aktiv · G2', 'aktiv · G3', 'svært aktiv · G4', 'svært aktiv · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys mulig i horisonten', chanceMaybe: 'kanskje synlig på kamera',
     chanceLow: (n) => `lite sannsynlig her (krever ~Kp ${n})`, source: 'Kilde', loading: 'Laster …', butCloudy: 'men skyet',
-    tabs: { today: 'I dag', night: 'Natt', year: 'År' }, now: 'Nå',
+    tabs: { today: 'I dag', night: 'Natt', year: 'År', sky3d: '3D' }, now: 'Nå',
     clouds: 'Skyer', skyTonight: 'Himmelen i natt', cloudClasses: ['Klart', 'Delvis skyet', 'Overskyet'],
     glowEvening: 'Aftenrøde', glowMorning: 'Morgenrøde', overTerrain: 'over terrenget',
     astroNight: 'Astronomisk natt', moonFree: 'månefri', noAstroNight: 'Ingen astronomisk natt', darkHours: 'Mørke',
@@ -245,6 +251,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    model3d: 'Himmelkuppel & hus', hint3d: 'Træk for at rotere · skyder = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Nat', 'Tusmørke', 'Blå time', 'Gylden time', 'Dag'],
@@ -265,7 +272,7 @@ const STR = {
     kpWords: ['roligt', 'roligt', 'roligt', 'roligt', 'moderat', 'moderat · G1', 'aktivt · G2', 'aktivt · G3', 'meget aktivt · G4', 'meget aktivt · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys muligt i horisonten', chanceMaybe: 'måske synligt på kamera',
     chanceLow: (n) => `usandsynligt her (kræver ~Kp ${n})`, source: 'Kilde', loading: 'Henter …', butCloudy: 'men skyet',
-    tabs: { today: 'I dag', night: 'Nat', year: 'År' }, now: 'Nu',
+    tabs: { today: 'I dag', night: 'Nat', year: 'År', sky3d: '3D' }, now: 'Nu',
     clouds: 'Skyer', skyTonight: 'Himlen i nat', cloudClasses: ['Klart', 'Delvist skyet', 'Overskyet'],
     glowEvening: 'Aftenrøde', glowMorning: 'Morgenrøde', overTerrain: 'over terrænet',
     astroNight: 'Astronomisk nat', moonFree: 'månefri', noAstroNight: 'Ingen astronomisk nat', darkHours: 'Mørke',

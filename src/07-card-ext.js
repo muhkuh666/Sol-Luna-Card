@@ -576,6 +576,11 @@ Object.assign(SolLunaCard.prototype, {
     .splegend span::before { content:''; display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:4px; vertical-align:middle; }
     .splegend .summer::before { background:#ff9f43; } .splegend .equinox::before { background:#e8d44d; }
     .splegend .winter::before { background:#6ea8ff; } .splegend .today::before { background:var(--slc-text); }
+    .c3dwrap { border-radius:10px; overflow:hidden; }
+    .c3d { width:100%; display:block; touch-action:none; cursor:grab; }
+    .c3d:active { cursor:grabbing; }
+    .c3dhint { font-size:.7em; color:var(--slc-sub); text-align:center; margin-top:4px; }
+    .t3time { margin-left:auto; font-weight:600; color:var(--slc-sub); font-variant-numeric:tabular-nums; }
     .cline { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:.82em; color:var(--slc-text); font-variant-numeric:tabular-nums; }
     .cline span { display:inline-flex; align-items:center; gap:5px; }
     .cline ha-icon { --mdc-icon-size:15px; width:15px; height:15px; color:var(--slc-sun); }

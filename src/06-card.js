@@ -88,8 +88,16 @@ class SolLunaCard extends HTMLElement {
     root.addEventListener('input', (e) => {
       const el = e.composedPath()[0];
       if (el?.dataset?.action === 'skytime') { this._skyTime = Number(el.value); this._updateSkyMap(); }
+      if (el?.dataset?.action === 't3d') this._onT3d(el.value);
     });
     root.addEventListener('pointerdown', (e) => {
+      const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (cv) {
+        this._rot3d = { x: e.clientX, y: e.clientY, yaw: this._yaw3d ?? 105, pitch: this._pitch3d ?? 30, id: e.pointerId };
+        try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
+        e.preventDefault();
+        return;
+      }
       if (!this._config?.scrub || !this._graphMeta) return;
       const g = e.composedPath().find((n) => n.classList && n.classList.contains('graph'));
       if (!g) return;
@@ -97,6 +105,17 @@ class SolLunaCard extends HTMLElement {
       try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
       this._scrubTo(e.clientX);
     });
+    this.addEventListener('pointermove', (e) => {
+      const R3 = this._rot3d;
+      if (R3 && e.pointerId === R3.id) {
+        this._yaw3d = (R3.yaw - (e.clientX - R3.x) * 0.5 + 360) % 360;
+        this._pitch3d = clamp(R3.pitch + (e.clientY - R3.y) * 0.3, 4, 80);
+        if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+      }
+    });
+    const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } } };
+    this.addEventListener('pointerup', end3);
+    this.addEventListener('pointercancel', end3);
     this.addEventListener('pointermove', (e) => { if (this._scrubbing && e.pointerId === this._scrubPointer) this._scrubTo(e.clientX); });
     const end = (e) => {
       if (!this._scrubbing) return;
@@ -277,7 +296,7 @@ class SolLunaCard extends HTMLElement {
     D.clouds = CL;
     try { A = this._auroraData(D, t, F); if (A) A.sky = this._skyTonight(D); } catch (e) { console.error('sol-luna-card aurora', e); }
 
-    const tabsAvail = ['today', c.show_night_tab && 'night', c.show_year_tab && 'year'].filter(Boolean);
+    const tabsAvail = ['today', c.show_night_tab && 'night', c.show_year_tab && 'year', c.show_3d_tab && 'sky3d'].filter(Boolean);
     const tabsOn = !compact && c.show_tabs && tabsAvail.length > 1;
     let tab = tabsOn ? (this._tab || c.default_tab || 'today') : 'today';
     if (!tabsAvail.includes(tab)) tab = 'today';
@@ -297,6 +316,7 @@ class SolLunaCard extends HTMLElement {
     if (compact) body = this._compactHtml(D, t, F, sky, moonRot, A);
     else if (tab === 'night') body = this._nightHtml(D, t, F, moonRot, A);
     else if (tab === 'year') body = this._yearHtml(D, t, F);
+    else if (tab === 'sky3d') body = this._html3d(D, t, F);
     else {
       body = (c.show_graph ? this._graphHtml(D, t, F, sky, moonRot) : '') +
         (c.show_sun_times ? this._sunTimesHtml(D, t, F) : '') +
@@ -323,6 +343,7 @@ class SolLunaCard extends HTMLElement {
         ${auroraSky}
         <div class="content">${header}${tabs}${body}</div>
       </ha-card>`;
+    if (tab === 'sky3d' && !compact) this._after3d(D);
   }
 
   _moonRotation(D) {

@@ -25,6 +25,9 @@ A Home Assistant card for the **sun, moon and sky**: daily sun and moon paths, a
 - **Meteor showers**: upcoming showers with peak, rate and whether the moon interferes.
 - **Eclipses**: solar and lunar eclipses of the coming years, **calculated for your location** (coverage, times, visibility).
 
+**3D**
+- **Sky dome & house**: your house (gable roof, size, orientation, PV modules configurable) under a hemisphere with sun, moon, visible planets and bright stars, a real-time shadow and sun paths for today, summer and winter. Drag to rotate, slider for the time of day.
+
 **Year**
 - **Day length through the year** with a marker for today.
 - **Sun path diagram** (summer, equinox, winter, today) with terrain profile.
@@ -100,6 +103,10 @@ language: auto
 | `show_sky_map`, `show_sky_tonight`, `show_astro_window` | `true` | Night tab: sky map, clouds, astro window |
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planets, meteor showers, eclipses (years ahead) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Year tab |
+| `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D tab |
+| `roof_azimuth`, `roof_pitch` | `180`, `35` | Direction the main roof faces (°), roof pitch (°) |
+| `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | House size in metres (width across the ridge) |
+| `wall_color`, `roof_color`, `pv_color` | – | House colours |
 | `show_aurora`, `aurora_effect`, `aurora_source` | `true`, `true`, `auto` | Aurora (see below) |
 | `background` | `sky` | `sky`, `light`, `dark`, `theme` |
 | `moon_orientation` | `sky` | `sky` = rotated as in the sky, `simple` = left/right |

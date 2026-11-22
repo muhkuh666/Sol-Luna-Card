@@ -25,6 +25,9 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 - **Sternschnuppen**: nächste Meteorströme mit Höhepunkt, Rate und Hinweis, ob der Mond stört.
 - **Finsternisse**: Sonnen- und Mondfinsternisse der nächsten Jahre, **für deinen Standort berechnet** (Bedeckung, Zeiten, Sichtbarkeit).
 
+**3D**
+- **Himmelskuppel & Haus**: dein Haus (Satteldach, Größe, Ausrichtung und PV-Module einstellbar) unter einer Halbkugel mit Sonne, Mond, sichtbaren Planeten und hellen Sternen, mit Schattenwurf und den Sonnenbahnen für heute, Sommer und Winter. Ziehen zum Drehen, Regler für die Uhrzeit.
+
 **Jahr**
 - **Tageslänge im Jahresverlauf** mit Markierung für heute.
 - **Sonnenbahn-Diagramm** (Sommer, Tagundnachtgleiche, Winter, heute) mit Geländeprofil.
@@ -100,6 +103,10 @@ language: auto
 | `show_sky_map`, `show_sky_tonight`, `show_astro_window` | `true` | Nacht-Tab: Sternenkarte, Wolken, Astro-Fenster |
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planeten, Sternschnuppen, Finsternisse (Jahre voraus) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Jahr-Tab |
+| `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D-Tab |
+| `roof_azimuth`, `roof_pitch` | `180`, `35` | Richtung der Hauptdachfläche (°), Dachneigung (°) |
+| `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | Hausmaße in Metern (Breite quer zum First) |
+| `wall_color`, `roof_color`, `pv_color` | – | Farben des Hauses |
 | `show_aurora`, `aurora_effect`, `aurora_source` | `true`, `true`, `auto` | Polarlicht (siehe unten) |
 | `background` | `sky` | `sky`, `light`, `dark`, `theme` |
 | `moon_orientation` | `sky` | `sky` = wie am Himmel gedreht, `simple` = links/rechts |

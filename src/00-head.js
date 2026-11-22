@@ -5,4 +5,4 @@
 (() => {
 'use strict';
 
-const VERSION = '2.0.2';
+const VERSION = '2.1.0';

@@ -16,7 +16,7 @@ ha-card{display:block;background:var(--card-background-color);border-radius:16px
 <div class="grid" id="grid"></div>
 <script>
 customElements.define('ha-card', class extends HTMLElement {});
-const EMO={'weather-sunset':'🌅','weather-night':'🌙','weather-night-partly-cloudy':'🌌','circle-half-full':'◐','camera-iris':'📷','white-balance-sunny':'☀️','weather-sunset-up':'🌄','weather-sunset-down':'🌇','arrow-up-thin':'↑','arrow-down-thin':'↓','map-marker-distance':'📏','moon-waning-crescent':'🌘','flower':'🌷','leaf-maple':'🍁','snowflake':'❄️','star-shooting':'🌠','alert':'⚠️','shield-check-outline':'🛡️','clock-time-four-outline':'🕓','image-filter-hdr':'⛰️','star-four-points-outline':'✨','telescope':'🔭','orbit':'🪐','star-shooting-outline':'🌠','chart-bell-curve':'📈','sun-compass':'🧭','calendar-star':'📅','timer-sand':'⏳','weather-cloudy':'☁️','zodiac-aries':'♈','zodiac-taurus':'♉'};
+const EMO={'weather-sunset':'🌅','weather-night':'🌙','weather-night-partly-cloudy':'🌌','circle-half-full':'◐','camera-iris':'📷','white-balance-sunny':'☀️','weather-sunset-up':'🌄','weather-sunset-down':'🌇','arrow-up-thin':'↑','arrow-down-thin':'↓','map-marker-distance':'📏','moon-waning-crescent':'🌘','flower':'🌷','leaf-maple':'🍁','snowflake':'❄️','star-shooting':'🌠','alert':'⚠️','shield-check-outline':'🛡️','clock-time-four-outline':'🕓','image-filter-hdr':'⛰️','star-four-points-outline':'✨','telescope':'🔭','orbit':'🪐','star-shooting-outline':'🌠','chart-bell-curve':'📈','sun-compass':'🧭','calendar-star':'📅','home-variant-outline':'🏠','timer-sand':'⏳','weather-cloudy':'☁️','zodiac-aries':'♈','zodiac-taurus':'♉'};
 customElements.define('ha-icon', class extends HTMLElement { static get observedAttributes(){return['icon']} attributeChangedCallback(){const k=(this.getAttribute('icon')||'').replace('mdi:','');this.textContent=EMO[k]||(k.startsWith('zodiac')?'✦':'•');this.style.cssText+='display:inline-flex;align-items:center;justify-content:center;font-size:calc(var(--mdc-icon-size,16px)*.85);line-height:1;';}});
 </script>
 <script>
@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.0.2';
+const VERSION = '2.1.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -683,6 +683,7 @@ function parseHorizon(src, pvgisSouth = false) {
  * ====================================================================== */
 const STR = {
   de: {
+    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
@@ -706,7 +707,7 @@ const STR = {
     maxKp: 'Max. Kp', chanceGood: 'Polarlicht am Nordhorizont möglich', chanceMaybe: 'evtl. mit Kamera sichtbar',
     chanceLow: (n) => `hier unwahrscheinlich (ab ca. Kp ${n})`, source: 'Quelle', loading: 'Lade Daten …',
     noaaError: 'NOAA-Daten nicht erreichbar', butCloudy: 'aber bewölkt',
-    tabs: { today: 'Heute', night: 'Nacht', year: 'Jahr' }, now: 'Jetzt',
+    tabs: { today: 'Heute', night: 'Nacht', year: 'Jahr', sky3d: '3D' }, now: 'Jetzt',
     clouds: 'Wolken', skyTonight: 'Himmel heute Nacht', cloudClasses: ['Klar', 'Teils bewölkt', 'Bedeckt'],
     glowEvening: 'Abendrot', glowMorning: 'Morgenrot', overTerrain: 'über Gelände',
     astroNight: 'Astronomische Nacht', moonFree: 'mondfrei', noAstroNight: 'Keine astronomische Nacht', darkHours: 'Dunkelheit',
@@ -726,6 +727,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],
@@ -749,7 +751,7 @@ const STR = {
     maxKp: 'Max Kp', chanceGood: 'aurora possible on the horizon', chanceMaybe: 'maybe visible on camera',
     chanceLow: (n) => `unlikely here (needs ~Kp ${n})`, source: 'Source', loading: 'Loading data …',
     noaaError: 'NOAA data unavailable', butCloudy: 'but cloudy',
-    tabs: { today: 'Today', night: 'Night', year: 'Year' }, now: 'Now',
+    tabs: { today: 'Today', night: 'Night', year: 'Year', sky3d: '3D' }, now: 'Now',
     clouds: 'Clouds', skyTonight: 'Sky tonight', cloudClasses: ['Clear', 'Partly cloudy', 'Overcast'],
     glowEvening: 'Sunset glow', glowMorning: 'Sunrise glow', overTerrain: 'over terrain',
     astroNight: 'Astronomical night', moonFree: 'moon-free', noAstroNight: 'No astronomical night', darkHours: 'Darkness',
@@ -769,6 +771,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    model3d: 'Hemelkoepel & huis', hint3d: 'Slepen om te draaien · schuif = tijd',
     activity: 'Activiteit',
     title: 'Zon & Maan',
     bands: ['Nacht', 'Schemering', 'Blauw uur', 'Gouden uur', 'Dag'],
@@ -789,7 +792,7 @@ const STR = {
     kpWords: ['rustig', 'rustig', 'rustig', 'rustig', 'matig', 'matig · G1', 'actief · G2', 'actief · G3', 'zeer actief · G4', 'zeer actief · G5'],
     maxKp: 'Max. Kp', chanceGood: 'noorderlicht aan de horizon mogelijk', chanceMaybe: 'mogelijk op camera zichtbaar',
     chanceLow: (n) => `hier onwaarschijnlijk (vanaf ca. Kp ${n})`, source: 'Bron', loading: 'Gegevens laden …', butCloudy: 'maar bewolkt',
-    tabs: { today: 'Vandaag', night: 'Nacht', year: 'Jaar' }, now: 'Nu',
+    tabs: { today: 'Vandaag', night: 'Nacht', year: 'Jaar', sky3d: '3D' }, now: 'Nu',
     clouds: 'Bewolking', skyTonight: 'Hemel vannacht', cloudClasses: ['Helder', 'Half bewolkt', 'Bewolkt'],
     glowEvening: 'Avondrood', glowMorning: 'Ochtendrood', overTerrain: 'boven terrein',
     astroNight: 'Astronomische nacht', moonFree: 'maanloos', noAstroNight: 'Geen astronomische nacht', darkHours: 'Duisternis',
@@ -808,6 +811,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    model3d: 'Voûte céleste & maison', hint3d: 'Glisser pour pivoter · curseur = heure',
     activity: 'Activité',
     title: 'Soleil & Lune',
     bands: ['Nuit', 'Crépuscule', 'Heure bleue', 'Heure dorée', 'Jour'],
@@ -828,7 +832,7 @@ const STR = {
     kpWords: ['calme', 'calme', 'calme', 'calme', 'modéré', 'modéré · G1', 'actif · G2', 'actif · G3', 'très actif · G4', 'très actif · G5'],
     maxKp: 'Kp max', chanceGood: "aurore possible à l'horizon", chanceMaybe: 'peut-être visible en photo',
     chanceLow: (n) => `peu probable ici (Kp ~${n} requis)`, source: 'Source', loading: 'Chargement …', butCloudy: 'mais nuageux',
-    tabs: { today: "Aujourd'hui", night: 'Nuit', year: 'Année' }, now: 'Maintenant',
+    tabs: { today: "Aujourd'hui", night: 'Nuit', year: 'Année', sky3d: '3D' }, now: 'Maintenant',
     clouds: 'Nuages', skyTonight: 'Ciel cette nuit', cloudClasses: ['Dégagé', 'Partiellement nuageux', 'Couvert'],
     glowEvening: 'Ciel rouge du soir', glowMorning: 'Ciel rouge du matin', overTerrain: 'au-dessus du relief',
     astroNight: 'Nuit astronomique', moonFree: 'sans lune', noAstroNight: 'Pas de nuit astronomique', darkHours: 'Obscurité',
@@ -847,6 +851,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    model3d: 'Himlavalv & hus', hint3d: 'Dra för att rotera · reglage = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skymning', 'Blå timmen', 'Gyllene timmen', 'Dag'],
@@ -867,7 +872,7 @@ const STR = {
     kpWords: ['lugnt', 'lugnt', 'lugnt', 'lugnt', 'måttligt', 'måttligt · G1', 'aktivt · G2', 'aktivt · G3', 'mycket aktivt · G4', 'mycket aktivt · G5'],
     maxKp: 'Max Kp', chanceGood: 'norrsken möjligt vid horisonten', chanceMaybe: 'kanske synligt med kamera',
     chanceLow: (n) => `osannolikt här (kräver ~Kp ${n})`, source: 'Källa', loading: 'Laddar …', butCloudy: 'men molnigt',
-    tabs: { today: 'Idag', night: 'Natt', year: 'År' }, now: 'Nu',
+    tabs: { today: 'Idag', night: 'Natt', year: 'År', sky3d: '3D' }, now: 'Nu',
     clouds: 'Moln', skyTonight: 'Himlen i natt', cloudClasses: ['Klart', 'Halvklart', 'Mulet'],
     glowEvening: 'Kvällsrodnad', glowMorning: 'Morgonrodnad', overTerrain: 'över terrängen',
     astroNight: 'Astronomisk natt', moonFree: 'månfri', noAstroNight: 'Ingen astronomisk natt', darkHours: 'Mörker',
@@ -886,6 +891,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    model3d: 'Himmelkuppel & hus', hint3d: 'Dra for å rotere · glidebryter = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skumring', 'Blåtime', 'Gyllen time', 'Dag'],
@@ -906,7 +912,7 @@ const STR = {
     kpWords: ['rolig', 'rolig', 'rolig', 'rolig', 'moderat', 'moderat · G1', 'aktiv · G2', 'aktiv · G3', 'svært aktiv · G4', 'svært aktiv · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys mulig i horisonten', chanceMaybe: 'kanskje synlig på kamera',
     chanceLow: (n) => `lite sannsynlig her (krever ~Kp ${n})`, source: 'Kilde', loading: 'Laster …', butCloudy: 'men skyet',
-    tabs: { today: 'I dag', night: 'Natt', year: 'År' }, now: 'Nå',
+    tabs: { today: 'I dag', night: 'Natt', year: 'År', sky3d: '3D' }, now: 'Nå',
     clouds: 'Skyer', skyTonight: 'Himmelen i natt', cloudClasses: ['Klart', 'Delvis skyet', 'Overskyet'],
     glowEvening: 'Aftenrøde', glowMorning: 'Morgenrøde', overTerrain: 'over terrenget',
     astroNight: 'Astronomisk natt', moonFree: 'månefri', noAstroNight: 'Ingen astronomisk natt', darkHours: 'Mørke',
@@ -925,6 +931,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    model3d: 'Himmelkuppel & hus', hint3d: 'Træk for at rotere · skyder = tid',
     activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Nat', 'Tusmørke', 'Blå time', 'Gylden time', 'Dag'],
@@ -945,7 +952,7 @@ const STR = {
     kpWords: ['roligt', 'roligt', 'roligt', 'roligt', 'moderat', 'moderat · G1', 'aktivt · G2', 'aktivt · G3', 'meget aktivt · G4', 'meget aktivt · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys muligt i horisonten', chanceMaybe: 'måske synligt på kamera',
     chanceLow: (n) => `usandsynligt her (kræver ~Kp ${n})`, source: 'Kilde', loading: 'Henter …', butCloudy: 'men skyet',
-    tabs: { today: 'I dag', night: 'Nat', year: 'År' }, now: 'Nu',
+    tabs: { today: 'I dag', night: 'Nat', year: 'År', sky3d: '3D' }, now: 'Nu',
     clouds: 'Skyer', skyTonight: 'Himlen i nat', cloudClasses: ['Klart', 'Delvist skyet', 'Overskyet'],
     glowEvening: 'Aftenrøde', glowMorning: 'Morgenrøde', overTerrain: 'over terrænet',
     astroNight: 'Astronomisk nat', moonFree: 'månefri', noAstroNight: 'Ingen astronomisk nat', darkHours: 'Mørke',
@@ -1053,6 +1060,19 @@ const DEFAULTS = {
   show_year_curve: true,
   show_sun_path: true,
   show_year_dates: true,
+  // 3D-Tab
+  show_3d_tab: true,
+  show_house: true,
+  roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
+  house_width: 10,             // Meter quer zum First
+  house_length: 12,            // Meter entlang des Firsts
+  wall_height: 6,
+  roof_pitch: 35,
+  show_pv: true,
+  wall_color: '#ece6da',
+  roof_color: '#9a4433',
+  pv_color: '#1d3557',
+  auto_rotate_3d: false,
   latitude: undefined,
   longitude: undefined,
   time_zone: undefined,
@@ -1161,8 +1181,16 @@ class SolLunaCard extends HTMLElement {
     root.addEventListener('input', (e) => {
       const el = e.composedPath()[0];
       if (el?.dataset?.action === 'skytime') { this._skyTime = Number(el.value); this._updateSkyMap(); }
+      if (el?.dataset?.action === 't3d') this._onT3d(el.value);
     });
     root.addEventListener('pointerdown', (e) => {
+      const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (cv) {
+        this._rot3d = { x: e.clientX, y: e.clientY, yaw: this._yaw3d ?? 105, pitch: this._pitch3d ?? 30, id: e.pointerId };
+        try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
+        e.preventDefault();
+        return;
+      }
       if (!this._config?.scrub || !this._graphMeta) return;
       const g = e.composedPath().find((n) => n.classList && n.classList.contains('graph'));
       if (!g) return;
@@ -1170,6 +1198,17 @@ class SolLunaCard extends HTMLElement {
       try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
       this._scrubTo(e.clientX);
     });
+    this.addEventListener('pointermove', (e) => {
+      const R3 = this._rot3d;
+      if (R3 && e.pointerId === R3.id) {
+        this._yaw3d = (R3.yaw - (e.clientX - R3.x) * 0.5 + 360) % 360;
+        this._pitch3d = clamp(R3.pitch + (e.clientY - R3.y) * 0.3, 4, 80);
+        if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+      }
+    });
+    const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } } };
+    this.addEventListener('pointerup', end3);
+    this.addEventListener('pointercancel', end3);
     this.addEventListener('pointermove', (e) => { if (this._scrubbing && e.pointerId === this._scrubPointer) this._scrubTo(e.clientX); });
     const end = (e) => {
       if (!this._scrubbing) return;
@@ -1350,7 +1389,7 @@ class SolLunaCard extends HTMLElement {
     D.clouds = CL;
     try { A = this._auroraData(D, t, F); if (A) A.sky = this._skyTonight(D); } catch (e) { console.error('sol-luna-card aurora', e); }
 
-    const tabsAvail = ['today', c.show_night_tab && 'night', c.show_year_tab && 'year'].filter(Boolean);
+    const tabsAvail = ['today', c.show_night_tab && 'night', c.show_year_tab && 'year', c.show_3d_tab && 'sky3d'].filter(Boolean);
     const tabsOn = !compact && c.show_tabs && tabsAvail.length > 1;
     let tab = tabsOn ? (this._tab || c.default_tab || 'today') : 'today';
     if (!tabsAvail.includes(tab)) tab = 'today';
@@ -1370,6 +1409,7 @@ class SolLunaCard extends HTMLElement {
     if (compact) body = this._compactHtml(D, t, F, sky, moonRot, A);
     else if (tab === 'night') body = this._nightHtml(D, t, F, moonRot, A);
     else if (tab === 'year') body = this._yearHtml(D, t, F);
+    else if (tab === 'sky3d') body = this._html3d(D, t, F);
     else {
       body = (c.show_graph ? this._graphHtml(D, t, F, sky, moonRot) : '') +
         (c.show_sun_times ? this._sunTimesHtml(D, t, F) : '') +
@@ -1396,6 +1436,7 @@ class SolLunaCard extends HTMLElement {
         ${auroraSky}
         <div class="content">${header}${tabs}${body}</div>
       </ha-card>`;
+    if (tab === 'sky3d' && !compact) this._after3d(D);
   }
 
   _moonRotation(D) {
@@ -2541,6 +2582,11 @@ Object.assign(SolLunaCard.prototype, {
     .splegend span::before { content:''; display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:4px; vertical-align:middle; }
     .splegend .summer::before { background:#ff9f43; } .splegend .equinox::before { background:#e8d44d; }
     .splegend .winter::before { background:#6ea8ff; } .splegend .today::before { background:var(--slc-text); }
+    .c3dwrap { border-radius:10px; overflow:hidden; }
+    .c3d { width:100%; display:block; touch-action:none; cursor:grab; }
+    .c3d:active { cursor:grabbing; }
+    .c3dhint { font-size:.7em; color:var(--slc-sub); text-align:center; margin-top:4px; }
+    .t3time { margin-left:auto; font-weight:600; color:var(--slc-sub); font-variant-numeric:tabular-nums; }
     .cline { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:.82em; color:var(--slc-text); font-variant-numeric:tabular-nums; }
     .cline span { display:inline-flex; align-items:center; gap:5px; }
     .cline ha-icon { --mdc-icon-size:15px; width:15px; height:15px; color:var(--slc-sun); }
@@ -2551,6 +2597,331 @@ Object.assign(SolLunaCard.prototype, {
       .nightgrid, .yeargrid { grid-template-columns:1fr; }
     }
     `;
+  },
+});
+
+/* ====================================================================== *
+ *  KARTE – 3D-Ansicht: Haus unter der Himmelshalbkugel                    *
+ * ====================================================================== */
+const V3 = {
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  norm: (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  /** Richtung aus Höhe/Azimut (x = Ost, y = Nord, z = oben) */
+  dir: (alt, az) => [Math.sin(az * RAD) * Math.cos(alt * RAD), Math.cos(az * RAD) * Math.cos(alt * RAD), Math.sin(alt * RAD)],
+};
+function shadeHex(hex, f) {
+  const c = hex2rgb(hex);
+  return rgb2hex(c.map((v) => clamp(v * f, 0, 255)));
+}
+function convexHull(pts) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  up.pop(); lo.pop();
+  return lo.concat(up);
+}
+
+Object.assign(SolLunaCard.prototype, {
+
+  _t3(D) {
+    return this._time3d != null && this._time3d >= D.start && this._time3d <= D.end ? this._time3d : D.now;
+  },
+
+  _html3d(D, t, F) {
+    const t3 = this._t3(D);
+    return `
+      <div class="tile wide c3dtile">
+        <div class="tilehead"><ha-icon icon="mdi:home-variant-outline"></ha-icon>${esc(t.model3d)} <span class="t3time">${esc(F.date(t3))} ${F.time(t3)}</span></div>
+        <div class="c3dwrap"><canvas class="c3d"></canvas></div>
+        <input type="range" class="skyrange t3range" data-action="t3d" min="${D.start}" max="${D.end}" step="${10 * MIN_MS}" value="${t3}">
+        <div class="c3dhint">${esc(t.hint3d)}</div>
+      </div>`;
+  },
+
+  _after3d(D) {
+    this._D3 = D;
+    this._draw3d();
+    const c = this._config;
+    if (c.auto_rotate_3d && c.animations && !this._spin) {
+      this._spin = true;
+      const loop = () => {
+        if (!this._spin || !this.isConnected || !this.shadowRoot.querySelector('canvas.c3d')) { this._spin = false; return; }
+        if (!this._rot3d) { this._yaw3d = ((this._yaw3d ?? 105) + 0.12) % 360; this._draw3d(); }
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    }
+  },
+
+  _onT3d(value) {
+    this._time3d = Number(value);
+    this._draw3d();
+    const D = this._D3;
+    const lbl = this.shadowRoot.querySelector('.t3time');
+    if (lbl && D) { const F = this._fmt(D); lbl.textContent = `${F.date(this._time3d)} ${F.time(this._time3d)}`; }
+  },
+
+  _sunArcs3d(D) {
+    const y = tzParts(D.live, D.tz).y;
+    return this._cached(`arcs|${y}|${D.lat}|${D.lng}`, () => [[6, 21], [12, 21]].map(([m, d]) => {
+      const mid = localMidnight(Date.UTC(y, m - 1, d, 12), D.tz);
+      const pts = [];
+      for (let tt = mid; tt <= mid + DAY_MS; tt += 10 * MIN_MS) {
+        const s = Astro.sun(tt, D.lat, D.lng);
+        if (s.alt > 0) pts.push([s.alt, s.az]);
+      }
+      return pts;
+    }));
+  },
+
+  _draw3d() {
+    const cv = this.shadowRoot.querySelector('canvas.c3d');
+    const D = this._D3;
+    if (!cv || !D) return;
+    const c = this._config;
+    const { t } = this._lang();
+    const dpr = window.devicePixelRatio || 1;
+    const W = Math.max(200, cv.clientWidth || cv.parentElement?.clientWidth || 400);
+    const H = Math.round(W * 0.74);
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = `${H}px`;
+    }
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+
+    const time = this._t3(D);
+    const sun = Astro.sun(time, D.lat, D.lng);
+    const moon = Astro.moon(time, D.lat, D.lng);
+    const day = clamp((sun.alt + 6) / 12, 0, 1);
+    const dark = clamp((-sun.alt - 4) / 10, 0, 1);
+
+    // ---- Haus-Maße
+    const hw = Math.max(2, Number(c.house_width) || 10);
+    const hl = Math.max(2, Number(c.house_length) || 12);
+    const wh = Math.max(1, Number(c.wall_height) || 6);
+    const pitch = clamp(Number(c.roof_pitch ?? 35), 0, 65);
+    const rh = hw / 2 * Math.tan(pitch * RAD);
+    const R = Math.max(hw, hl, wh + rh) * 2.2;
+
+    // ---- Kamera
+    const yaw = (this._yaw3d ?? 105) * RAD, pit = clamp(this._pitch3d ?? 30, 4, 80) * RAD;
+    const dist = R * 3.1;
+    const target = [0, 0, R * 0.28];
+    const cam = [target[0] + dist * Math.sin(yaw) * Math.cos(pit), target[1] + dist * Math.cos(yaw) * Math.cos(pit), target[2] + dist * Math.sin(pit)];
+    const f = V3.norm(V3.sub(target, cam));
+    const r = V3.norm(V3.cross(f, [0, 0, 1]));
+    const u = V3.cross(r, f);
+    const fl = W * 1.38;
+    const P = (p) => {
+      const v = V3.sub(p, cam);
+      const z = V3.dot(v, f);
+      return [W / 2 + V3.dot(v, r) * fl / z, H * 0.57 - V3.dot(v, u) * fl / z, z];
+    };
+    const poly = (pts) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); };
+    const line3 = (pts3, close) => { poly(pts3.map(P)); if (close) g.closePath(); };
+
+    // ---- Hintergrund
+    const [st, sb] = skyColors(sun.alt);
+    const bg = g.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, st); bg.addColorStop(1, sb);
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+
+    // ---- Sterne
+    if (dark > 0 && c.stars) {
+      g.fillStyle = '#ffffff';
+      for (const name of Object.keys(STARS)) {
+        const s = Astro.star(name, time, D.lat, D.lng);
+        if (s.alt <= 0) continue;
+        const p = P(V3.mul(V3.dir(s.alt, s.az), R));
+        g.globalAlpha = dark * clamp(1.1 - s.mag * 0.25, 0.25, 1);
+        g.beginPath(); g.arc(p[0], p[1], Math.max(0.6, 1.9 - 0.4 * s.mag), 0, 2 * Math.PI); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+
+    // ---- Kuppel-Raster
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(255,255,255,.16)';
+    for (const alt of [30, 60]) {
+      const ring = []; for (let az = 0; az <= 360; az += 6) ring.push(V3.mul(V3.dir(alt, az), R));
+      line3(ring); g.stroke();
+    }
+    for (let az = 0; az < 360; az += 30) {
+      const m = []; for (let alt = 0; alt <= 90; alt += 5) m.push(V3.mul(V3.dir(alt, az), R));
+      line3(m); g.stroke();
+    }
+
+    // ---- Boden
+    const groundPts = []; for (let a = 0; a < 360; a += 5) groundPts.push([R * Math.sin(a * RAD), R * Math.cos(a * RAD), 0]);
+    const gp = groundPts.map(P);
+    poly(gp); g.closePath();
+    const gcol = lerpColor('#141a26', '#5f7f4c', day);
+    const gg = g.createRadialGradient(W / 2, H * 0.62, 10, W / 2, H * 0.62, W * 0.55);
+    gg.addColorStop(0, shadeHex(gcol, 1.12)); gg.addColorStop(1, shadeHex(gcol, 0.8));
+    g.fillStyle = gg; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.stroke();
+
+    // ---- Gelände-Silhouette
+    if (D.horizon) {
+      g.fillStyle = `rgba(${Math.round(30 + 40 * day)},${Math.round(40 + 50 * day)},${Math.round(45 + 30 * day)},.85)`;
+      for (let az = 0; az < 360; az += 4) {
+        const h1 = Math.max(0, D.horizon(az)), h2 = Math.max(0, D.horizon(az + 4));
+        if (h1 < 0.05 && h2 < 0.05) continue;
+        const q = [V3.mul(V3.dir(0, az), R), V3.mul(V3.dir(0, az + 4), R), V3.mul(V3.dir(h2, az + 4), R), V3.mul(V3.dir(h1, az), R)].map(P);
+        poly(q); g.closePath(); g.fill();
+      }
+    }
+
+    // ---- Himmelsrichtungen
+    g.font = `700 ${Math.round(W / 34)}px system-ui, sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    t.dirs.forEach((lbl, i) => {
+      if (i % 2) return;
+      const p = P([R * 1.09 * Math.sin(i * 45 * RAD), R * 1.09 * Math.cos(i * 45 * RAD), 0]);
+      g.fillStyle = i === 0 ? '#ff8a8a' : 'rgba(255,255,255,.85)';
+      g.fillText(lbl, p[0], p[1]);
+    });
+
+    // ---- Sonnenbahnen
+    const arcs = this._sunArcs3d(D);
+    g.setLineDash([3, 4]); g.lineWidth = 1.2;
+    [['#ff9f43', arcs[0]], ['#6ea8ff', arcs[1]]].forEach(([col, pts]) => {
+      if (pts.length < 2) return;
+      g.strokeStyle = col; g.globalAlpha = 0.6;
+      line3(pts.map(([al, az]) => V3.mul(V3.dir(al, az), R))); g.stroke();
+    });
+    g.setLineDash([]); g.globalAlpha = 1;
+    const today = D.samples.filter((p, i) => i % 3 === 0 && p.s > 0).map((p) => V3.mul(V3.dir(p.s, p.saz), R));
+    if (today.length > 1) { g.strokeStyle = c.curve_color; g.lineWidth = 2.2; line3(today); g.stroke(); }
+
+    // ---- Haus-Geometrie
+    const A = Number(c.roof_azimuth ?? 180);
+    const ax = [Math.sin(A * RAD), Math.cos(A * RAD), 0];
+    const bx = [Math.cos(A * RAD), -Math.sin(A * RAD), 0];
+    const L = (s, l, z) => V3.add(V3.add(V3.mul(ax, s), V3.mul(bx, l)), [0, 0, z]);
+    const s2 = hw / 2, l2 = hl / 2, top = wh + rh;
+    const sinP = Math.sin(pitch * RAD), cosP = Math.cos(pitch * RAD);
+    const faces = c.show_house === false ? [] : [
+      { kind: 'wall', side: 1, pts: [L(s2, -l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(s2, -l2, wh)], n: ax },
+      { kind: 'wall', side: -1, pts: [L(-s2, l2, 0), L(-s2, -l2, 0), L(-s2, -l2, wh), L(-s2, l2, wh)], n: V3.mul(ax, -1) },
+      { kind: 'gable', pts: [L(-s2, l2, 0), L(s2, l2, 0), L(s2, l2, wh), L(0, l2, top), L(-s2, l2, wh)], n: bx },
+      { kind: 'gable', pts: [L(s2, -l2, 0), L(-s2, -l2, 0), L(-s2, -l2, wh), L(0, -l2, top), L(s2, -l2, wh)], n: V3.mul(bx, -1) },
+      { kind: 'roof', main: true, pts: [L(s2, -l2, wh), L(s2, l2, wh), L(0, l2, top), L(0, -l2, top)], n: V3.norm(V3.add(V3.mul(ax, sinP), [0, 0, cosP])) },
+      { kind: 'roof', pts: [L(-s2, l2, wh), L(-s2, -l2, wh), L(0, -l2, top), L(0, l2, top)], n: V3.norm(V3.add(V3.mul(ax, -sinP), [0, 0, cosP])) },
+    ];
+    const sunDir = V3.dir(sun.alt, sun.az);
+    const light = (n) => sun.alt > -1 ? Math.max(0, V3.dot(n, sunDir)) * clamp((sun.alt + 1) / 6, 0, 1) : 0;
+    const houseDepth = P([0, 0, wh / 2])[2];
+
+    // ---- Schatten
+    if (faces.length && sun.alt > 0.5) {
+      const tanA = Math.tan(Math.max(sun.alt, 1.5) * RAD);
+      const sx = -Math.sin(sun.az * RAD), sy = -Math.cos(sun.az * RAD);
+      const pts = [];
+      faces.forEach((fc) => fc.pts.forEach((p) => {
+        const d = p[2] / tanA;
+        pts.push([p[0] + sx * d, p[1] + sy * d]);
+      }));
+      const hull = convexHull(pts);
+      g.save();
+      poly(gp); g.closePath(); g.clip();
+      poly(hull.map(([x, y]) => P([x, y, 0]))); g.closePath();
+      g.fillStyle = `rgba(0,0,0,${(0.18 + 0.22 * day).toFixed(2)})`; g.fill();
+      g.restore();
+    }
+
+    // ---- Himmelskörper
+    const bodies = [];
+    if (sun.alt > -1) bodies.push({ type: 'sun', p: P(V3.mul(V3.dir(sun.alt, sun.az), R)) });
+    if (moon.altTopo > -1) bodies.push({ type: 'moon', p: P(V3.mul(V3.dir(moon.altTopo, moon.az), R)) });
+    for (const name of PLANETS) {
+      const pl = Astro.planet(name, time, D.lat, D.lng);
+      if (pl.alt > 0 && (sun.alt < -2 || pl.mag < -3)) bodies.push({ type: 'planet', name, mag: pl.mag, p: P(V3.mul(V3.dir(pl.alt, pl.az), R)) });
+    }
+    const drawBody = (b) => {
+      const [x, y] = b.p;
+      if (b.type === 'sun') {
+        const rg = g.createRadialGradient(x, y, 0, x, y, 26);
+        rg.addColorStop(0, '#ffffff'); rg.addColorStop(0.25, c.sun_color); rg.addColorStop(1, 'rgba(255,200,60,0)');
+        g.fillStyle = rg; g.beginPath(); g.arc(x, y, 26, 0, 2 * Math.PI); g.fill();
+        g.fillStyle = c.sun_color; g.beginPath(); g.arc(x, y, 8, 0, 2 * Math.PI); g.fill();
+      } else if (b.type === 'moon') {
+        const rot = this._moonRotFor(moon, D.lat);
+        const rr = 9, k = moon.k;
+        g.save(); g.translate(x, y);
+        const glow = g.createRadialGradient(0, 0, 0, 0, 0, rr * 2.2);
+        glow.addColorStop(0, `rgba(230,236,250,${(0.25 + 0.4 * k).toFixed(2)})`); glow.addColorStop(1, 'rgba(230,236,250,0)');
+        g.fillStyle = glow; g.beginPath(); g.arc(0, 0, rr * 2.2, 0, 2 * Math.PI); g.fill();
+        g.fillStyle = lerpColor(c.moon_color, '#1b2033', 0.8); g.beginPath(); g.arc(0, 0, rr, 0, 2 * Math.PI); g.fill();
+        if (k > 0.005) {
+          g.rotate(rot.lit * RAD);
+          const rx = Math.abs(1 - 2 * k) * rr;
+          const path = k > 0.995 ? `M 0 ${-rr} A ${rr} ${rr} 0 1 1 0 ${rr} A ${rr} ${rr} 0 1 1 0 ${-rr} Z`
+            : `M 0 ${-rr} A ${rr} ${rr} 0 0 1 0 ${rr} A ${rx} ${rr} 0 0 ${k < 0.5 ? 0 : 1} 0 ${-rr} Z`;
+          g.fillStyle = c.moon_color; g.fill(new Path2D(path));
+        }
+        g.restore();
+      } else {
+        const col = PLANET_COLORS[b.name];
+        g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 8;
+        g.beginPath(); g.arc(x, y, clamp(3.2 - 0.4 * b.mag, 1.8, 4.5), 0, 2 * Math.PI); g.fill();
+        g.shadowBlur = 0;
+        g.font = `600 ${Math.round(W / 42)}px system-ui, sans-serif`; g.textAlign = 'left';
+        g.fillStyle = 'rgba(255,240,210,.95)'; g.fillText(t.planetNames[b.name], x + 7, y - 6);
+      }
+    };
+    bodies.filter((b) => b.p[2] > houseDepth).forEach(drawBody);
+
+    // ---- Haus zeichnen
+    const vis = faces.map((fc) => {
+      const cen = V3.mul(fc.pts.reduce((a, p) => V3.add(a, p), [0, 0, 0]), 1 / fc.pts.length);
+      return { ...fc, cen, depth: P(cen)[2], facing: V3.dot(fc.n, V3.sub(cam, cen)) > 0 };
+    }).filter((fc) => fc.facing).sort((a, b) => b.depth - a.depth);
+    const amb = 0.3 + 0.32 * day;
+    for (const fc of vis) {
+      const base = fc.kind === 'roof' ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
+      g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
+      line3(fc.pts, true); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke();
+      // PV-Module auf der Hauptdachfläche
+      if (fc.kind === 'roof' && fc.main && c.show_pv) {
+        const lerp3 = (a, b, x) => V3.add(a, V3.mul(V3.sub(b, a), x));
+        const e1 = L(s2, -l2 * 0.86, wh), e2 = L(s2, l2 * 0.86, wh), r1 = L(0, -l2 * 0.86, top), r2 = L(0, l2 * 0.86, top);
+        const q = [lerp3(e1, r1, 0.12), lerp3(e2, r2, 0.12), lerp3(e2, r2, 0.88), lerp3(e1, r1, 0.88)];
+        const lt = light(fc.n);
+        g.fillStyle = shadeHex(c.pv_color || '#1d3557', 0.6 + 0.9 * lt);
+        line3(q, true); g.fill();
+        g.strokeStyle = 'rgba(180,200,230,.35)'; g.lineWidth = 0.6;
+        for (let i = 1; i < 6; i++) { line3([lerp3(q[0], q[1], i / 6), lerp3(q[3], q[2], i / 6)]); g.stroke(); }
+        line3([lerp3(q[0], q[3], 0.5), lerp3(q[1], q[2], 0.5)]); g.stroke();
+      }
+      // Fenster (nachts beleuchtet)
+      if (fc.kind === 'wall') {
+        const s = fc.side * s2 * 1.001;
+        for (const lc of [-l2 / 2, l2 / 2]) {
+          const w2 = hl * 0.07, z1 = wh * 0.28, z2 = wh * 0.58;
+          const q = [L(s, lc - w2, z1), L(s, lc + w2, z1), L(s, lc + w2, z2), L(s, lc - w2, z2)];
+          g.fillStyle = sun.alt < -4 ? '#ffd98a' : shadeHex('#5d7896', 0.7 + 0.5 * light(fc.n));
+          if (sun.alt < -4) { g.shadowColor = '#ffcc66'; g.shadowBlur = 10; }
+          line3(q, true); g.fill(); g.shadowBlur = 0;
+        }
+      }
+    }
+    bodies.filter((b) => b.p[2] <= houseDepth).forEach(drawBody);
+
+    // ---- Info
+    g.font = `600 ${Math.round(W / 38)}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillStyle = 'rgba(255,255,255,.92)';
+    g.fillText(`☀ ${Math.round(sun.az)}° · ${sun.alt.toFixed(1)}°`, 10, 10);
+    g.fillText(`☾ ${Math.round(moon.az)}° · ${moon.altTopo.toFixed(1)}°`, 10, 10 + W / 30);
   },
 });
 
@@ -2579,6 +2950,9 @@ const ED_STR = {
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
+    sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
+    show_pv: 'PV-Module auf dem Hauptdach', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
     tab_today: 'Heute', tab_night: 'Nacht', tab_year: 'Jahr', show_tabs: 'Tabs anzeigen', show_night_tab: 'Tab „Nacht“', show_year_tab: 'Tab „Jahr“',
     scrub: 'Zeitregler (in der Grafik ziehen)',
@@ -2616,6 +2990,9 @@ const ED_STR = {
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
+    sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
+    show_pv: 'PV modules on main roof', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
     tab_today: 'Today', tab_night: 'Night', tab_year: 'Year', show_tabs: 'Show tabs', show_night_tab: '“Night” tab', show_year_tab: '“Year” tab',
     scrub: 'Time scrubber (drag the graph)',
@@ -2698,7 +3075,7 @@ class SolLunaCardEditor extends HTMLElement {
         sel('time_format', [['auto', T.auto], ['24', '24 h'], ['12', '12 h']]) +
         num('refresh_period', '1', '60'), true)}
       ${sec(T.layoutSec, sel('layout', [['full', T.ly_full], ['compact', T.ly_compact]]) +
-        sel('default_tab', [['today', T.tab_today], ['night', T.tab_night], ['year', T.tab_year]]) +
+        sel('default_tab', [['today', T.tab_today], ['night', T.tab_night], ['year', T.tab_year], ['sky3d', T.tab_3d]]) +
         sw('show_tabs') + sw('show_night_tab') + sw('show_year_tab') + sw('scrub'))}
       ${sec(T.display, ['show_header', 'show_status', 'show_graph', 'show_moon_in_graph', 'show_hour_bands', 'show_sun_times', 'show_moon', 'show_next_phases', 'show_position', 'show_season'].map(sw).join(''))}
       ${sec(T.design, sel('background', [['sky', T.bg_sky], ['light', T.bg_light], ['dark', T.bg_dark], ['theme', T.bg_theme]]) +
@@ -2709,6 +3086,9 @@ class SolLunaCardEditor extends HTMLElement {
         `<label class="f"><span>${esc(T.weather_entity)}</span><input data-k="weather_entity" type="text" list="wxlist" placeholder="weather.…"></label>` +
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
+      ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
+        num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
+        sw('show_pv') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
       ${sec(T.yearSec, ['show_year_curve', 'show_sun_path', 'show_year_dates'].map(sw).join(''))}
       ${sec(T.horizonSec, sel('horizon_source', [['off', T.hz_off], ['entity', T.hz_entity], ['manual', T.hz_manual]]) +
         `<label class="f"><span>${esc(T.horizon_entity)}</span><input data-k="horizon_entity" type="text" list="entlist" placeholder="sensor.sol_luna_horizon"></label>` +
@@ -2819,6 +3199,8 @@ const HZ='0:3, 30:2, 60:1.5, 90:2.5, 120:4, 150:5.5, 180:6, 210:5, 240:3.5, 270:
 const DEMOS=[
  {cap:'Heute – Live / gewählte Zeit', live:true, cfg:{}, aur:QUIET},
  {cap:'Tab „Nacht“ (21.11., 20:00)', now:'2026-11-21T20:00:00+01:00', cfg:{default_tab:'night'}, aur:QUIET},
+ {cap:'Tab „3D“ – Mittag (21.11., 12:30)', now:'2026-11-21T12:30:00+01:00', cfg:{default_tab:'sky3d'}, aur:QUIET},
+ {cap:'Tab „3D“ – Nacht mit Planeten (21.11., 20:00)', now:'2026-11-21T20:00:00+01:00', cfg:{default_tab:'sky3d', horizon_source:'manual', horizon_profile:HZ}, aur:QUIET},
  {cap:'Tab „Jahr“ (Light Mode)', now:'2026-11-21T12:00:00+01:00', cfg:{default_tab:'year', background:'light'}, aur:QUIET},
  {cap:'Goldene Stunde mit Wolken & echtem Horizont', now:'2026-11-21T16:05:00+01:00', cfg:{horizon_source:'manual', horizon_profile:HZ}, aur:QUIET},
  {cap:'Polarlicht-Nacht, Kp 7 (Dark Mode)', now:'2026-11-24T22:30:00+01:00', cfg:{background:'dark'}, aur:STORM},

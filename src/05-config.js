@@ -76,6 +76,19 @@ const DEFAULTS = {
   show_year_curve: true,
   show_sun_path: true,
   show_year_dates: true,
+  // 3D-Tab
+  show_3d_tab: true,
+  show_house: true,
+  roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
+  house_width: 10,             // Meter quer zum First
+  house_length: 12,            // Meter entlang des Firsts
+  wall_height: 6,
+  roof_pitch: 35,
+  show_pv: true,
+  wall_color: '#ece6da',
+  roof_color: '#9a4433',
+  pv_color: '#1d3557',
+  auto_rotate_3d: false,
   latitude: undefined,
   longitude: undefined,
   time_zone: undefined,
