@@ -19,7 +19,7 @@ const ED_STR = {
     latitude: 'Breitengrad', longitude: 'Längengrad', time_zone: 'Zeitzone', locHint: 'Leer lassen = Werte aus Home Assistant',
     auto: 'Automatisch', reset: 'Zurücksetzen',
     aurora: 'Polarlicht', show_aurora: 'Polarlicht-Bereich anzeigen', aurora_effect: 'Nordlicht-Effekt im Nachthimmel', aurora_color: 'Polarlicht',
-    aurora_visibility_entity: 'Sichtbarkeit (%)', aurora_alert_entity: 'Sichtbarkeitswarnung', aurora_kp_entity: 'Planetary K-Index',
+    aurora_visibility_entity: 'Sichtbarkeit (%)', aurora_alert_entity: 'Sichtbarkeitswarnung', aurora_kp_entity: 'Planetary K-Index', aurora_activity_entity: 'Aktivitätsstufe (z. B. Aurora Activity Level)',
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
@@ -56,7 +56,7 @@ const ED_STR = {
     latitude: 'Latitude', longitude: 'Longitude', time_zone: 'Time zone', locHint: 'Leave empty = Home Assistant values',
     auto: 'Automatic', reset: 'Reset',
     aurora: 'Aurora', show_aurora: 'Show aurora section', aurora_effect: 'Aurora effect in night sky', aurora_color: 'Aurora',
-    aurora_visibility_entity: 'Visibility (%)', aurora_alert_entity: 'Visibility alert', aurora_kp_entity: 'Planetary K-index',
+    aurora_visibility_entity: 'Visibility (%)', aurora_alert_entity: 'Visibility alert', aurora_kp_entity: 'Planetary K-index', aurora_activity_entity: 'Activity level (e.g. Aurora Activity Level)',
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
@@ -110,7 +110,7 @@ class SolLunaCardEditor extends HTMLElement {
     const sw = (k) => `<label class="s"><input data-k="${k}" type="checkbox"><span class="track"></span><span>${esc(T[k])}</span></label>`;
     const col = (k) => `<label class="c"><input data-k="${k}" type="color"><span>${esc(T[k])}</span><button data-reset="${k}" title="${esc(T.reset)}">↺</button></label>`;
     const ent = (k) => `<label class="f"><span>${esc(T[k])}</span><input data-k="${k}" type="text" list="entlist" placeholder="${esc(T.auto)}"></label>`;
-    const AUR = ['aurora_visibility_entity', 'aurora_alert_entity', 'aurora_kp_entity', 'aurora_today_entity', 'aurora_today_text_entity',
+    const AUR = ['aurora_visibility_entity', 'aurora_alert_entity', 'aurora_kp_entity', 'aurora_activity_entity', 'aurora_today_entity', 'aurora_today_text_entity',
       'aurora_tomorrow_entity', 'aurora_tomorrow_text_entity', 'aurora_day_after_entity', 'aurora_day_after_text_entity'];
     const ha = this._hass?.config || {};
     this.shadowRoot.innerHTML = `

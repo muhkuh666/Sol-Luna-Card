@@ -149,6 +149,7 @@ If nothing is set, the card looks for entities containing “aurora” (visibili
 aurora_visibility_entity: sensor.aurora_visibility_visibility
 aurora_alert_entity: binary_sensor.aurora_visibility_visibility_alert
 aurora_kp_entity: sensor.planetary_k_index
+aurora_activity_entity: sensor.aurora_activity_level
 aurora_today_entity: sensor.aurora_today
 aurora_today_text_entity: sensor.aurora_forecast_today
 aurora_tomorrow_entity: sensor.aurora_tomorrow

@@ -36,6 +36,7 @@ const DEFAULTS = {
   aurora_visibility_entity: '',
   aurora_alert_entity: '',
   aurora_kp_entity: '',
+  aurora_activity_entity: '',
   aurora_today_entity: '',
   aurora_today_text_entity: '',
   aurora_tomorrow_entity: '',

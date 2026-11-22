@@ -149,6 +149,7 @@ Ohne Angabe sucht die Karte automatisch nach Entitäten mit „aurora“ (Sichtb
 aurora_visibility_entity: sensor.aurora_visibility_visibility
 aurora_alert_entity: binary_sensor.aurora_visibility_visibility_alert
 aurora_kp_entity: sensor.planetary_k_index
+aurora_activity_entity: sensor.aurora_activity_level
 aurora_today_entity: sensor.aurora_heute
 aurora_today_text_entity: sensor.aurora_forecast_heute
 aurora_tomorrow_entity: sensor.aurora_morgen

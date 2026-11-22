@@ -350,6 +350,9 @@ class SolLunaCard extends HTMLElement {
       /visib|sichtbar/.test(txt(id)) && st[id].attributes?.unit_of_measurement === '%') || null;
     res.alert = manual('aurora_alert_entity') || aur.find((id) => id.startsWith('binary_sensor.')) || null;
     res.kp = manual('aurora_kp_entity') || all.find((id) => id.startsWith('sensor.') && /(^|[^a-z])kp?[\s_-]?index/.test(txt(id))) || null;
+    res.activity = manual('aurora_activity_entity') || aur.find((id) => id.startsWith('sensor.') &&
+      /activity|aktivit/.test(txt(id)) && !/today|heute|tomorrow|morgen|day_?[0-2]|day.after|forecast|vorhersage/.test(txt(id)) &&
+      String(st[id].state).length <= 24) || null;
     const dayRe = [
       (x) => /today|heute|day_?0/.test(x),
       (x) => (/tomorrow|morgen|day_?1/.test(x)) && !/übermorgen|uebermorgen|ubermorgen|day_after|day after/.test(x),
@@ -365,7 +368,7 @@ class SolLunaCard extends HTMLElement {
         text: manual(`aurora_${k}_text_entity`) || long[0] || null,
       };
     });
-    const any = res.vis || res.alert || res.kp || res.days.some((d) => d.level || d.text);
+    const any = res.vis || res.alert || res.kp || res.activity || res.days.some((d) => d.level || d.text);
     return any ? res : null;
   }
 
@@ -373,7 +376,7 @@ class SolLunaCard extends HTMLElement {
     const e = this._config && this._auroraEntities();
     if (!e) return '';
     const st = this._hass.states;
-    return [e.vis, e.alert, e.kp, ...e.days.flatMap((d) => [d.level, d.text])].map((id) => (id ? st[id]?.state : '')).join('|');
+    return [e.vis, e.alert, e.kp, e.activity, ...e.days.flatMap((d) => [d.level, d.text])].map((id) => (id ? st[id]?.state : '')).join('|');
   }
 
   _auroraData(D, t, F) {
@@ -391,6 +394,7 @@ class SolLunaCard extends HTMLElement {
       vis: n(e.vis),
       alert: e.alert ? st[e.alert]?.state === 'on' : null,
       kp: n(e.kp),
+      activity: e.activity ? st[e.activity]?.state : null,
       days: e.days.map((d) => ({ ...d, levelState: d.level ? st[d.level]?.state : null, textState: d.text ? st[d.text]?.state : null })),
     };
   }
@@ -426,8 +430,8 @@ class SolLunaCard extends HTMLElement {
     });
     const loading = !NOAA.kp.data && !NOAA.kp.error;
     return {
-      e: { vis: ov || c.aurora_ovation ? 'noaa:ov' : null, alert: 'noaa:alert', kp: 'noaa:kp', days },
-      vis, alert, kp: kpNow, days, internet: true, loading,
+      e: { vis: ov || c.aurora_ovation ? 'noaa:ov' : null, alert: 'noaa:alert', kp: 'noaa:kp', activity: kpNow != null ? 'noaa:kp' : null, days },
+      vis, alert, kp: kpNow, activity: kpNow != null ? kpLevelKey(kpNow) : null, days, internet: true, loading,
       error: NOAA.kp.error && !NOAA.kp.data ? NOAA.kp.error : null,
       updated: NOAA.kp.ts || null,
     };
@@ -463,6 +467,11 @@ class SolLunaCard extends HTMLElement {
       stats.push(`<div class="astat kpstat" data-entity="${esc(A.e.kp)}">
         <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(t.kpWords[clamp(Math.round(kp), 0, 9)])}</span></div>
         <div class="kpbar">${segs}</div><div class="albl">${esc(t.kp)}</div></div></div>`);
+    }
+    if (A.e.activity) {
+      const lvl = auroraLevel(A.activity);
+      stats.push(`<div class="astat" data-entity="${esc(A.e.activity)}"><ha-icon icon="mdi:waveform" style="color:${AURORA_LEVEL_COLORS[lvl]}"></ha-icon>
+        <div><div class="aval"><span class="chip" style="--chip:${AURORA_LEVEL_COLORS[lvl]}">${esc(tr(A.activity))}</span></div><div class="albl">${esc(t.activity)}</div></div></div>`);
     }
     if (A.e.alert) {
       stats.push(`<div class="astat" data-entity="${esc(A.e.alert)}"><ha-icon icon="${A.alert ? 'mdi:alert' : 'mdi:shield-check-outline'}" class="${A.alert ? 'alerton' : ''}"></ha-icon>

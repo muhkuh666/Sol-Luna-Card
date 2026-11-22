@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -672,6 +672,7 @@ function parseHorizon(src, pvgisSouth = false) {
  * ====================================================================== */
 const STR = {
   de: {
+    activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
     morning: 'Morgen', evening: 'Abend', sunrise: 'Aufgang', sunset: 'Untergang', noon: 'Mittag',
@@ -714,6 +715,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],
     morning: 'Morning', evening: 'Evening', sunrise: 'Sunrise', sunset: 'Sunset', noon: 'Solar noon',
@@ -756,6 +758,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    activity: 'Activiteit',
     title: 'Zon & Maan',
     bands: ['Nacht', 'Schemering', 'Blauw uur', 'Gouden uur', 'Dag'],
     morning: 'Ochtend', evening: 'Avond', sunrise: 'Zonsopkomst', sunset: 'Zonsondergang', noon: 'Middag',
@@ -793,6 +796,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    activity: 'Activité',
     title: 'Soleil & Lune',
     bands: ['Nuit', 'Crépuscule', 'Heure bleue', 'Heure dorée', 'Jour'],
     morning: 'Matin', evening: 'Soir', sunrise: 'Lever', sunset: 'Coucher', noon: 'Midi solaire',
@@ -830,6 +834,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skymning', 'Blå timmen', 'Gyllene timmen', 'Dag'],
     morning: 'Morgon', evening: 'Kväll', sunrise: 'Soluppgång', sunset: 'Solnedgång', noon: 'Middag',
@@ -867,6 +872,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skumring', 'Blåtime', 'Gyllen time', 'Dag'],
     morning: 'Morgen', evening: 'Kveld', sunrise: 'Soloppgang', sunset: 'Solnedgang', noon: 'Middag',
@@ -904,6 +910,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Nat', 'Tusmørke', 'Blå time', 'Gylden time', 'Dag'],
     morning: 'Morgen', evening: 'Aften', sunrise: 'Solopgang', sunset: 'Solnedgang', noon: 'Middag',
@@ -990,6 +997,7 @@ const DEFAULTS = {
   aurora_visibility_entity: '',
   aurora_alert_entity: '',
   aurora_kp_entity: '',
+  aurora_activity_entity: '',
   aurora_today_entity: '',
   aurora_today_text_entity: '',
   aurora_tomorrow_entity: '',
@@ -1399,6 +1407,9 @@ class SolLunaCard extends HTMLElement {
       /visib|sichtbar/.test(txt(id)) && st[id].attributes?.unit_of_measurement === '%') || null;
     res.alert = manual('aurora_alert_entity') || aur.find((id) => id.startsWith('binary_sensor.')) || null;
     res.kp = manual('aurora_kp_entity') || all.find((id) => id.startsWith('sensor.') && /(^|[^a-z])kp?[\s_-]?index/.test(txt(id))) || null;
+    res.activity = manual('aurora_activity_entity') || aur.find((id) => id.startsWith('sensor.') &&
+      /activity|aktivit/.test(txt(id)) && !/today|heute|tomorrow|morgen|day_?[0-2]|day.after|forecast|vorhersage/.test(txt(id)) &&
+      String(st[id].state).length <= 24) || null;
     const dayRe = [
       (x) => /today|heute|day_?0/.test(x),
       (x) => (/tomorrow|morgen|day_?1/.test(x)) && !/übermorgen|uebermorgen|ubermorgen|day_after|day after/.test(x),
@@ -1414,7 +1425,7 @@ class SolLunaCard extends HTMLElement {
         text: manual(`aurora_${k}_text_entity`) || long[0] || null,
       };
     });
-    const any = res.vis || res.alert || res.kp || res.days.some((d) => d.level || d.text);
+    const any = res.vis || res.alert || res.kp || res.activity || res.days.some((d) => d.level || d.text);
     return any ? res : null;
   }
 
@@ -1422,7 +1433,7 @@ class SolLunaCard extends HTMLElement {
     const e = this._config && this._auroraEntities();
     if (!e) return '';
     const st = this._hass.states;
-    return [e.vis, e.alert, e.kp, ...e.days.flatMap((d) => [d.level, d.text])].map((id) => (id ? st[id]?.state : '')).join('|');
+    return [e.vis, e.alert, e.kp, e.activity, ...e.days.flatMap((d) => [d.level, d.text])].map((id) => (id ? st[id]?.state : '')).join('|');
   }
 
   _auroraData(D, t, F) {
@@ -1440,6 +1451,7 @@ class SolLunaCard extends HTMLElement {
       vis: n(e.vis),
       alert: e.alert ? st[e.alert]?.state === 'on' : null,
       kp: n(e.kp),
+      activity: e.activity ? st[e.activity]?.state : null,
       days: e.days.map((d) => ({ ...d, levelState: d.level ? st[d.level]?.state : null, textState: d.text ? st[d.text]?.state : null })),
     };
   }
@@ -1475,8 +1487,8 @@ class SolLunaCard extends HTMLElement {
     });
     const loading = !NOAA.kp.data && !NOAA.kp.error;
     return {
-      e: { vis: ov || c.aurora_ovation ? 'noaa:ov' : null, alert: 'noaa:alert', kp: 'noaa:kp', days },
-      vis, alert, kp: kpNow, days, internet: true, loading,
+      e: { vis: ov || c.aurora_ovation ? 'noaa:ov' : null, alert: 'noaa:alert', kp: 'noaa:kp', activity: kpNow != null ? 'noaa:kp' : null, days },
+      vis, alert, kp: kpNow, activity: kpNow != null ? kpLevelKey(kpNow) : null, days, internet: true, loading,
       error: NOAA.kp.error && !NOAA.kp.data ? NOAA.kp.error : null,
       updated: NOAA.kp.ts || null,
     };
@@ -1512,6 +1524,11 @@ class SolLunaCard extends HTMLElement {
       stats.push(`<div class="astat kpstat" data-entity="${esc(A.e.kp)}">
         <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(t.kpWords[clamp(Math.round(kp), 0, 9)])}</span></div>
         <div class="kpbar">${segs}</div><div class="albl">${esc(t.kp)}</div></div></div>`);
+    }
+    if (A.e.activity) {
+      const lvl = auroraLevel(A.activity);
+      stats.push(`<div class="astat" data-entity="${esc(A.e.activity)}"><ha-icon icon="mdi:waveform" style="color:${AURORA_LEVEL_COLORS[lvl]}"></ha-icon>
+        <div><div class="aval"><span class="chip" style="--chip:${AURORA_LEVEL_COLORS[lvl]}">${esc(tr(A.activity))}</span></div><div class="albl">${esc(t.activity)}</div></div></div>`);
     }
     if (A.e.alert) {
       stats.push(`<div class="astat" data-entity="${esc(A.e.alert)}"><ha-icon icon="${A.alert ? 'mdi:alert' : 'mdi:shield-check-outline'}" class="${A.alert ? 'alerton' : ''}"></ha-icon>
@@ -2542,7 +2559,7 @@ const ED_STR = {
     latitude: 'Breitengrad', longitude: 'Längengrad', time_zone: 'Zeitzone', locHint: 'Leer lassen = Werte aus Home Assistant',
     auto: 'Automatisch', reset: 'Zurücksetzen',
     aurora: 'Polarlicht', show_aurora: 'Polarlicht-Bereich anzeigen', aurora_effect: 'Nordlicht-Effekt im Nachthimmel', aurora_color: 'Polarlicht',
-    aurora_visibility_entity: 'Sichtbarkeit (%)', aurora_alert_entity: 'Sichtbarkeitswarnung', aurora_kp_entity: 'Planetary K-Index',
+    aurora_visibility_entity: 'Sichtbarkeit (%)', aurora_alert_entity: 'Sichtbarkeitswarnung', aurora_kp_entity: 'Planetary K-Index', aurora_activity_entity: 'Aktivitätsstufe (z. B. Aurora Activity Level)',
     aurora_today_entity: 'Heute – Stufe', aurora_today_text_entity: 'Heute – Text',
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
@@ -2579,7 +2596,7 @@ const ED_STR = {
     latitude: 'Latitude', longitude: 'Longitude', time_zone: 'Time zone', locHint: 'Leave empty = Home Assistant values',
     auto: 'Automatic', reset: 'Reset',
     aurora: 'Aurora', show_aurora: 'Show aurora section', aurora_effect: 'Aurora effect in night sky', aurora_color: 'Aurora',
-    aurora_visibility_entity: 'Visibility (%)', aurora_alert_entity: 'Visibility alert', aurora_kp_entity: 'Planetary K-index',
+    aurora_visibility_entity: 'Visibility (%)', aurora_alert_entity: 'Visibility alert', aurora_kp_entity: 'Planetary K-index', aurora_activity_entity: 'Activity level (e.g. Aurora Activity Level)',
     aurora_today_entity: 'Today – level', aurora_today_text_entity: 'Today – text',
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
@@ -2633,7 +2650,7 @@ class SolLunaCardEditor extends HTMLElement {
     const sw = (k) => `<label class="s"><input data-k="${k}" type="checkbox"><span class="track"></span><span>${esc(T[k])}</span></label>`;
     const col = (k) => `<label class="c"><input data-k="${k}" type="color"><span>${esc(T[k])}</span><button data-reset="${k}" title="${esc(T.reset)}">↺</button></label>`;
     const ent = (k) => `<label class="f"><span>${esc(T[k])}</span><input data-k="${k}" type="text" list="entlist" placeholder="${esc(T.auto)}"></label>`;
-    const AUR = ['aurora_visibility_entity', 'aurora_alert_entity', 'aurora_kp_entity', 'aurora_today_entity', 'aurora_today_text_entity',
+    const AUR = ['aurora_visibility_entity', 'aurora_alert_entity', 'aurora_kp_entity', 'aurora_activity_entity', 'aurora_today_entity', 'aurora_today_text_entity',
       'aurora_tomorrow_entity', 'aurora_tomorrow_text_entity', 'aurora_day_after_entity', 'aurora_day_after_text_entity'];
     const ha = this._hass?.config || {};
     this.shadowRoot.innerHTML = `
@@ -2772,6 +2789,7 @@ const mkHass=(aur)=>({language:'de',locale:{language:'de',time_format:'24'},conf
   'sensor.aurora_visibility_visibility':[aur.vis,{unit_of_measurement:'%',friendly_name:'Sichtbarkeit'}],
   'binary_sensor.aurora_visibility_visibility_alert':[aur.alert,{friendly_name:'Sichtbarkeitswarnung'}],
   'sensor.planetary_k_index':[aur.kp,{friendly_name:'Planetary K-Index'}],
+  'sensor.aurora_activity_level':[aur.d[0],{friendly_name:'Aurora Activity Level'}],
   'sensor.aurora_forecast_heute':[aur.d[0],{friendly_name:'Heute'}],
   'sensor.aurora_forecast_heute_beschreibung':[aur.t[0],{friendly_name:'Aurora Forecast Heute'}],
   'sensor.aurora_forecast_morgen':[aur.d[1],{friendly_name:'Morgen'}],

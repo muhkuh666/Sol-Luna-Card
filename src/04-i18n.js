@@ -3,6 +3,7 @@
  * ====================================================================== */
 const STR = {
   de: {
+    activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
     morning: 'Morgen', evening: 'Abend', sunrise: 'Aufgang', sunset: 'Untergang', noon: 'Mittag',
@@ -45,6 +46,7 @@ const STR = {
     weatherSrc: 'Wetter', tonight: 'heute Nacht',
   },
   en: {
+    activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],
     morning: 'Morning', evening: 'Evening', sunrise: 'Sunrise', sunset: 'Sunset', noon: 'Solar noon',
@@ -87,6 +89,7 @@ const STR = {
     weatherSrc: 'Weather', tonight: 'tonight',
   },
   nl: {
+    activity: 'Activiteit',
     title: 'Zon & Maan',
     bands: ['Nacht', 'Schemering', 'Blauw uur', 'Gouden uur', 'Dag'],
     morning: 'Ochtend', evening: 'Avond', sunrise: 'Zonsopkomst', sunset: 'Zonsondergang', noon: 'Middag',
@@ -124,6 +127,7 @@ const STR = {
     months: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'vannacht',
   },
   fr: {
+    activity: 'Activité',
     title: 'Soleil & Lune',
     bands: ['Nuit', 'Crépuscule', 'Heure bleue', 'Heure dorée', 'Jour'],
     morning: 'Matin', evening: 'Soir', sunrise: 'Lever', sunset: 'Coucher', noon: 'Midi solaire',
@@ -161,6 +165,7 @@ const STR = {
     months: ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'], tonight: 'cette nuit',
   },
   sv: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skymning', 'Blå timmen', 'Gyllene timmen', 'Dag'],
     morning: 'Morgon', evening: 'Kväll', sunrise: 'Soluppgång', sunset: 'Solnedgång', noon: 'Middag',
@@ -198,6 +203,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'], tonight: 'i natt',
   },
   nb: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Natt', 'Skumring', 'Blåtime', 'Gyllen time', 'Dag'],
     morning: 'Morgen', evening: 'Kveld', sunrise: 'Soloppgang', sunset: 'Solnedgang', noon: 'Middag',
@@ -235,6 +241,7 @@ const STR = {
     months: ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'], tonight: 'i natt',
   },
   da: {
+    activity: 'Aktivitet',
     title: 'Sol & Måne',
     bands: ['Nat', 'Tusmørke', 'Blå time', 'Gylden time', 'Dag'],
     morning: 'Morgen', evening: 'Aften', sunrise: 'Solopgang', sunset: 'Solnedgang', noon: 'Middag',
