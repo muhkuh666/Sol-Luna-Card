@@ -75,7 +75,13 @@ class SolLunaCard extends HTMLElement {
     root.addEventListener('click', (e) => {
       const el = e.composedPath().find((n) => n.dataset && (n.dataset.tab || n.dataset.action || n.dataset.entity));
       if (!el) return;
-      if (el.dataset.tab) { this._tab = el.dataset.tab; this._render(); return; }
+      if (el.dataset.tab) {
+        this._tab = el.dataset.tab;
+        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; }
+        if (el.dataset.tab === 'night') this._skyTime = null;
+        this._render();
+        return;
+      }
       if (el.dataset.action === 'now') { this._viewTime = null; this._skyTime = null; clearTimeout(this._scrubReset); this._render(); return; }
       if (el.dataset.entity) {
         const id = el.dataset.entity;

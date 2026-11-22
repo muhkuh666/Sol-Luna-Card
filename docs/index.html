@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.2.0';
+const VERSION = '2.2.1';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -1063,7 +1063,7 @@ const DEFAULTS = {
   // 3D-Tab
   show_3d_tab: true,
   show_house: true,
-  house_source: 'generic',     // generic | entity (echtes LoD2-Modell aus der Sol-&-Luna-Integration)
+  house_source: 'generic',     // generic | entity (Gebäudemodell aus Entität mit Attribut faces)
   building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First
@@ -1171,7 +1171,13 @@ class SolLunaCard extends HTMLElement {
     root.addEventListener('click', (e) => {
       const el = e.composedPath().find((n) => n.dataset && (n.dataset.tab || n.dataset.action || n.dataset.entity));
       if (!el) return;
-      if (el.dataset.tab) { this._tab = el.dataset.tab; this._render(); return; }
+      if (el.dataset.tab) {
+        this._tab = el.dataset.tab;
+        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; }
+        if (el.dataset.tab === 'night') this._skyTime = null;
+        this._render();
+        return;
+      }
       if (el.dataset.action === 'now') { this._viewTime = null; this._skyTime = null; clearTimeout(this._scrubReset); this._render(); return; }
       if (el.dataset.entity) {
         const id = el.dataset.entity;
@@ -3010,9 +3016,9 @@ const ED_STR = {
     nightSec: 'Nacht-Tab', show_sky_map: 'Sternenkarte', show_sky_tonight: 'Himmel heute Nacht (Wolken)', show_astro_window: 'Astro-Fenster',
     show_planets: 'Planeten', show_meteors: 'Sternschnuppen', show_eclipses: 'Finsternisse', eclipse_years: 'Finsternisse vorausberechnen (Jahre)',
     yearSec: 'Jahr-Tab', show_year_curve: 'Tageslänge im Jahresverlauf', show_sun_path: 'Sonnenbahn-Diagramm', show_year_dates: 'Termine & Rekorde',
-    horizonSec: 'Echter Horizont', horizon_source: 'Horizontprofil', hz_off: 'Aus (flacher Horizont)', hz_entity: 'Aus Entität (z. B. Sol & Luna Integration)',
+    horizonSec: 'Echter Horizont', horizon_source: 'Horizontprofil', hz_off: 'Aus (flacher Horizont)', hz_entity: 'Aus Entität (Attribut horizon)',
     hz_manual: 'Manuell', horizon_entity: 'Horizont-Entität', horizon_profile: 'Profil (Azimut:Höhe, Grad)',
-    hzHint: 'Azimut 0 = Nord, 90 = Ost. Die Sol-&-Luna-Integration liefert das Geländeprofil automatisch (PVGIS).',
+    hzHint: 'Azimut 0 = Nord, 90 = Ost. Werte z. B. aus PVGIS („Horizon profile“) ablesen.',
     auroraHint: 'Leer lassen = automatisch erkennen (Entitäten mit „aurora“ bzw. „k_index“ im Namen).',
     aurora_source: 'Datenquelle', as_auto: 'Automatisch (Entitäten, sonst Internet)', as_entities: 'Nur Home-Assistant-Entitäten', as_internet: 'Internet (NOAA SWPC)',
     aurora_ovation: 'Sichtbarkeit aus NOAA-OVATION-Modell laden (~0,9 MB)', aurora_threshold: 'Warnung ab Sichtbarkeit (%)', aurora_update_minutes: 'Internet-Abruf alle (Minuten)',
@@ -3050,9 +3056,9 @@ const ED_STR = {
     nightSec: 'Night tab', show_sky_map: 'Sky map', show_sky_tonight: 'Sky tonight (clouds)', show_astro_window: 'Astro window',
     show_planets: 'Planets', show_meteors: 'Meteor showers', show_eclipses: 'Eclipses', eclipse_years: 'Eclipse look-ahead (years)',
     yearSec: 'Year tab', show_year_curve: 'Day length through the year', show_sun_path: 'Sun path diagram', show_year_dates: 'Dates & records',
-    horizonSec: 'Real horizon', horizon_source: 'Horizon profile', hz_off: 'Off (flat horizon)', hz_entity: 'From entity (e.g. Sol & Luna integration)',
+    horizonSec: 'Real horizon', horizon_source: 'Horizon profile', hz_off: 'Off (flat horizon)', hz_entity: 'From entity (horizon attribute)',
     hz_manual: 'Manual', horizon_entity: 'Horizon entity', horizon_profile: 'Profile (azimuth:elevation, degrees)',
-    hzHint: 'Azimuth 0 = north, 90 = east. The Sol & Luna integration provides the terrain profile automatically (PVGIS).',
+    hzHint: 'Azimuth 0 = north, 90 = east. Read the values e.g. from PVGIS (“Horizon profile”).',
     auroraHint: 'Leave empty = auto-detect (entities with “aurora” or “k_index” in their name).',
     aurora_source: 'Data source', as_auto: 'Automatic (entities, else internet)', as_entities: 'Home Assistant entities only', as_internet: 'Internet (NOAA SWPC)',
     aurora_ovation: 'Load visibility from NOAA OVATION model (~0.9 MB)', aurora_threshold: 'Alert from visibility (%)', aurora_update_minutes: 'Internet refresh every (minutes)',
@@ -3135,12 +3141,12 @@ class SolLunaCardEditor extends HTMLElement {
         sw('show_clouds') + sw('show_glow') + num('cloud_update_minutes', '1', '30'))}
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
       ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['entity', T.hs_entity]]) +
-        `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.sol_luna_gebaudemodell"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
+        `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.…"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +
         sw('show_pv') + sw('pv_flat_roofs') + sw('auto_rotate_3d') + ['wall_color', 'roof_color', 'pv_color'].map(col).join(''))}
       ${sec(T.yearSec, ['show_year_curve', 'show_sun_path', 'show_year_dates'].map(sw).join(''))}
       ${sec(T.horizonSec, sel('horizon_source', [['off', T.hz_off], ['entity', T.hz_entity], ['manual', T.hz_manual]]) +
-        `<label class="f"><span>${esc(T.horizon_entity)}</span><input data-k="horizon_entity" type="text" list="entlist" placeholder="sensor.sol_luna_horizon"></label>` +
+        `<label class="f"><span>${esc(T.horizon_entity)}</span><input data-k="horizon_entity" type="text" list="entlist" placeholder="sensor.…"></label>` +
         `<label class="f wide"><span>${esc(T.horizon_profile)}</span><textarea data-k="horizon_profile" rows="2" placeholder="0:2, 45:3, 90:5, 135:2, 180:1, 225:4, 270:6, 315:3"></textarea></label>` +
         `<div class="hint">${esc(T.hzHint)}</div>`)}
       ${sec(T.aurora, sw('show_aurora') + sw('aurora_effect') +
