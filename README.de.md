@@ -38,7 +38,7 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 - Vier Hintergründe (Himmel, Hell, Dunkel, Theme), **Kompakt-Layout** als kleine Kachel
 - **7 Sprachen**: Deutsch, Englisch, Niederländisch, Französisch, Schwedisch, Norwegisch, Dänisch
 - **Grafischer Editor** für alle Optionen; alle Berechnungen laufen lokal im Browser
-- Optional mit der **[Sol & Luna Integration](https://github.com/muhkuh666/sol-luna)** für Geländehorizont und Automationen
+- Optional mit der **[Sol & Luna Integration](https://github.com/muhkuh666/Sol-Luna-Card/tree/main/integration)** für Geländehorizont und Automationen
 
 ![Tagesverlauf](images/day.gif)
 
@@ -105,7 +105,7 @@ language: auto
 | `show_planets`, `show_meteors`, `show_eclipses`, `eclipse_years` | `true`, `3` | Planeten, Sternschnuppen, Finsternisse (Jahre voraus) |
 | `show_year_curve`, `show_sun_path`, `show_year_dates` | `true` | Jahr-Tab |
 | `show_3d_tab`, `show_house`, `show_pv`, `auto_rotate_3d` | `true`, `true`, `true`, `false` | 3D-Tab |
-| `house_source`, `building_entity` | `generic`, – | `generic` = Haus aus den Maßen unten, `entity` = **echtes LoD2-Gebäudemodell** aus der [Sol & Luna Integration](https://github.com/muhkuh666/sol-luna) |
+| `house_source`, `building_entity` | `generic`, – | `generic` = Haus aus den Maßen unten, `entity` = **echtes LoD2-Gebäudemodell** aus der [Sol & Luna Integration](https://github.com/muhkuh666/Sol-Luna-Card/tree/main/integration) |
 | `pv_flat_roofs` | `false` | PV-Module auch auf Flachdächern zeichnen (echtes Modell) |
 | `roof_azimuth`, `roof_pitch` | `180`, `35` | Richtung der Hauptdachfläche (°), Dachneigung (°) |
 | `house_width`, `house_length`, `wall_height` | `10`, `12`, `6` | Hausmaße in Metern (Breite quer zum First) |
@@ -125,7 +125,7 @@ Ohne weitere Einstellung lädt die Karte die Bewölkung in drei Schichten von [O
 
 ### Echter Horizont
 
-Webseiten dürfen das Geländeprofil von PVGIS nicht direkt abrufen. Es kommt deshalb aus der **[Sol & Luna Integration](https://github.com/muhkuh666/sol-luna)** (`horizon_source: entity`) oder wird von Hand eingetragen (`horizon_source: manual`).
+Webseiten dürfen das Geländeprofil von PVGIS nicht direkt abrufen. Es kommt deshalb aus der **[Sol & Luna Integration](https://github.com/muhkuh666/Sol-Luna-Card/tree/main/integration)** (`horizon_source: entity`) oder wird von Hand eingetragen (`horizon_source: manual`).
 
 ### Polarlicht-Daten
 

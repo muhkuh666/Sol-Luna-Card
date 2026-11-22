@@ -1,0 +1,164 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sol & Luna",
+        "description": "Sonne, Mond, Wolken und Polarlicht für deinen Standort. Internet-Quellen lassen sich abschalten.",
+        "data": {
+          "name": "Name",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad",
+          "aurora": "Polarlicht-Daten von NOAA (Kp-Index, OVATION)",
+          "clouds": "Wolkenvorhersage von Open-Meteo",
+          "horizon": "Geländehorizont von PVGIS",
+          "aurora_threshold": "Polarlicht-Warnung ab Sichtbarkeit (%)",
+          "building": "3D-Gebäudemodell (LoD2, Geobasis NRW – nur Nordrhein-Westfalen)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sol & Luna Optionen",
+        "data": {
+          "aurora": "Polarlicht-Daten von NOAA (Kp-Index, OVATION)",
+          "clouds": "Wolkenvorhersage von Open-Meteo",
+          "horizon": "Geländehorizont von PVGIS",
+          "aurora_threshold": "Polarlicht-Warnung ab Sichtbarkeit (%)",
+          "building": "3D-Gebäudemodell (LoD2, Geobasis NRW – nur Nordrhein-Westfalen)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "sky_phase": {
+        "name": "Himmelsphase",
+        "state": {
+          "night": "Nacht",
+          "twilight": "Dämmerung",
+          "blue_hour": "Blaue Stunde",
+          "golden_hour": "Goldene Stunde",
+          "day": "Tag"
+        }
+      },
+      "sun_elevation": {
+        "name": "Sonnenhöhe"
+      },
+      "sun_azimuth": {
+        "name": "Sonnenazimut"
+      },
+      "next_golden_hour": {
+        "name": "Nächste goldene Stunde"
+      },
+      "next_blue_hour": {
+        "name": "Nächste blaue Stunde"
+      },
+      "day_length": {
+        "name": "Tageslänge"
+      },
+      "sunrise_over_terrain": {
+        "name": "Sonnenaufgang über Gelände"
+      },
+      "sunset_over_terrain": {
+        "name": "Sonnenuntergang hinter Gelände"
+      },
+      "moon_phase": {
+        "name": "Mondphase",
+        "state": {
+          "new_moon": "Neumond",
+          "waxing_crescent": "Zunehmende Sichel",
+          "first_quarter": "Erstes Viertel",
+          "waxing_gibbous": "Zunehmender Mond",
+          "full_moon": "Vollmond",
+          "waning_gibbous": "Abnehmender Mond",
+          "last_quarter": "Letztes Viertel",
+          "waning_crescent": "Abnehmende Sichel"
+        }
+      },
+      "moon_illumination": {
+        "name": "Mondbeleuchtung"
+      },
+      "moon_elevation": {
+        "name": "Mondhöhe"
+      },
+      "moon_distance": {
+        "name": "Mondentfernung"
+      },
+      "next_full_moon": {
+        "name": "Nächster Vollmond"
+      },
+      "next_new_moon": {
+        "name": "Nächster Neumond"
+      },
+      "astronomical_dusk": {
+        "name": "Astronomische Nacht beginnt"
+      },
+      "astronomical_dawn": {
+        "name": "Astronomische Nacht endet"
+      },
+      "moon_free_darkness": {
+        "name": "Mondfreie Dunkelheit heute Nacht"
+      },
+      "cloud_cover_now": {
+        "name": "Bewölkung"
+      },
+      "cloud_cover_tonight": {
+        "name": "Bewölkung heute Nacht"
+      },
+      "sunset_glow_chance": {
+        "name": "Abendrot-Chance"
+      },
+      "sunrise_glow_chance": {
+        "name": "Morgenrot-Chance"
+      },
+      "kp_index": {
+        "name": "Kp-Index"
+      },
+      "kp_max_24h": {
+        "name": "Max. Kp nächste 24 h"
+      },
+      "aurora_visibility": {
+        "name": "Polarlicht-Sichtbarkeit"
+      },
+      "aurora_chance": {
+        "name": "Polarlicht-Chance",
+        "state": {
+          "unlikely": "Unwahrscheinlich",
+          "possible": "Möglich",
+          "likely": "Wahrscheinlich"
+        }
+      },
+      "horizon": {
+        "name": "Geländehorizont"
+      },
+      "building": {
+        "name": "Gebäudemodell"
+      }
+    },
+    "binary_sensor": {
+      "golden_hour": {
+        "name": "Goldene Stunde"
+      },
+      "blue_hour": {
+        "name": "Blaue Stunde"
+      },
+      "astronomical_darkness": {
+        "name": "Astronomische Dunkelheit"
+      },
+      "moon_free_dark": {
+        "name": "Mondfreie Dunkelheit"
+      },
+      "clear_sky_tonight": {
+        "name": "Klarer Himmel heute Nacht"
+      },
+      "aurora_alert": {
+        "name": "Polarlicht-Alarm"
+      }
+    }
+  }
+}

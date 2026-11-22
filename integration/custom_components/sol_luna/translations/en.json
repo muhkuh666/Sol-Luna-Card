@@ -1,0 +1,164 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sol & Luna",
+        "description": "Sun, moon, clouds and aurora for your location. Internet sources can be switched off.",
+        "data": {
+          "name": "Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "aurora": "Aurora data from NOAA (Kp index, OVATION)",
+          "clouds": "Cloud forecast from Open-Meteo",
+          "horizon": "Terrain horizon from PVGIS",
+          "aurora_threshold": "Aurora alert from visibility (%)",
+          "building": "3D building model (LoD2, Geobasis NRW – North Rhine-Westphalia only)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sol & Luna options",
+        "data": {
+          "aurora": "Aurora data from NOAA (Kp index, OVATION)",
+          "clouds": "Cloud forecast from Open-Meteo",
+          "horizon": "Terrain horizon from PVGIS",
+          "aurora_threshold": "Aurora alert from visibility (%)",
+          "building": "3D building model (LoD2, Geobasis NRW – North Rhine-Westphalia only)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "sky_phase": {
+        "name": "Sky phase",
+        "state": {
+          "night": "Night",
+          "twilight": "Twilight",
+          "blue_hour": "Blue hour",
+          "golden_hour": "Golden hour",
+          "day": "Day"
+        }
+      },
+      "sun_elevation": {
+        "name": "Sun elevation"
+      },
+      "sun_azimuth": {
+        "name": "Sun azimuth"
+      },
+      "next_golden_hour": {
+        "name": "Next golden hour"
+      },
+      "next_blue_hour": {
+        "name": "Next blue hour"
+      },
+      "day_length": {
+        "name": "Day length"
+      },
+      "sunrise_over_terrain": {
+        "name": "Sunrise over terrain"
+      },
+      "sunset_over_terrain": {
+        "name": "Sunset behind terrain"
+      },
+      "moon_phase": {
+        "name": "Moon phase",
+        "state": {
+          "new_moon": "New moon",
+          "waxing_crescent": "Waxing crescent",
+          "first_quarter": "First quarter",
+          "waxing_gibbous": "Waxing gibbous",
+          "full_moon": "Full moon",
+          "waning_gibbous": "Waning gibbous",
+          "last_quarter": "Last quarter",
+          "waning_crescent": "Waning crescent"
+        }
+      },
+      "moon_illumination": {
+        "name": "Moon illumination"
+      },
+      "moon_elevation": {
+        "name": "Moon elevation"
+      },
+      "moon_distance": {
+        "name": "Moon distance"
+      },
+      "next_full_moon": {
+        "name": "Next full moon"
+      },
+      "next_new_moon": {
+        "name": "Next new moon"
+      },
+      "astronomical_dusk": {
+        "name": "Astronomical night begins"
+      },
+      "astronomical_dawn": {
+        "name": "Astronomical night ends"
+      },
+      "moon_free_darkness": {
+        "name": "Moon-free darkness tonight"
+      },
+      "cloud_cover_now": {
+        "name": "Cloud cover"
+      },
+      "cloud_cover_tonight": {
+        "name": "Cloud cover tonight"
+      },
+      "sunset_glow_chance": {
+        "name": "Sunset glow chance"
+      },
+      "sunrise_glow_chance": {
+        "name": "Sunrise glow chance"
+      },
+      "kp_index": {
+        "name": "Kp index"
+      },
+      "kp_max_24h": {
+        "name": "Max Kp next 24 h"
+      },
+      "aurora_visibility": {
+        "name": "Aurora visibility"
+      },
+      "aurora_chance": {
+        "name": "Aurora chance",
+        "state": {
+          "unlikely": "Unlikely",
+          "possible": "Possible",
+          "likely": "Likely"
+        }
+      },
+      "horizon": {
+        "name": "Terrain horizon"
+      },
+      "building": {
+        "name": "Building model"
+      }
+    },
+    "binary_sensor": {
+      "golden_hour": {
+        "name": "Golden hour"
+      },
+      "blue_hour": {
+        "name": "Blue hour"
+      },
+      "astronomical_darkness": {
+        "name": "Astronomical darkness"
+      },
+      "moon_free_dark": {
+        "name": "Moon-free darkness"
+      },
+      "clear_sky_tonight": {
+        "name": "Clear sky tonight"
+      },
+      "aurora_alert": {
+        "name": "Aurora alert"
+      }
+    }
+  }
+}
