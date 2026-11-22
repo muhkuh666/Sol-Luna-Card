@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.4.0';
+const VERSION = '2.4.1';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -2781,7 +2781,7 @@ Object.assign(SolLunaCard.prototype, {
     this._buildingFaces();
     const st = this._modelStatus;
     if (!st) return '';
-    return st === 'loading' ? ` · ${esc(t.modelLoading)}` : `<br><span class="merr">⚠ ${esc(t.modelError)}: ${esc(st)}</span>`;
+    return st === 'loading' ? ` · ${esc(t.modelLoading)}` : `<br><span class="merr">⚠ ${esc(t.modelError)}: ${esc(st)}${/404/.test(st) ? ` (${esc(String(this._config.house_model || ''))})` : ''}</span>`;
   },
 
   _after3d(D) {
@@ -3106,6 +3106,7 @@ const MODELS = new Map();   // url -> { state: 'loading'|'ok'|'error', text, err
 
 function loadModelText(url, onDone) {
   let slot = MODELS.get(url);
+  if (slot && slot.state === 'error' && Date.now() - (slot.t || 0) > 15000) { MODELS.delete(url); slot = null; }
   if (!slot) {
     slot = { state: 'loading', listeners: new Set() };
     MODELS.set(url, slot);
@@ -3118,7 +3119,7 @@ function loadModelText(url, onDone) {
         if (!slot.binary) slot.text = new TextDecoder('utf-8').decode(buf);
         slot.state = 'ok';
       })
-      .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; })
+      .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; slot.t = Date.now(); })
       .finally(() => { slot.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); slot.listeners.clear(); });
   }
   if (slot.state === 'loading' && onDone) slot.listeners.add(onDone);

@@ -5,6 +5,7 @@ const MODELS = new Map();   // url -> { state: 'loading'|'ok'|'error', text, err
 
 function loadModelText(url, onDone) {
   let slot = MODELS.get(url);
+  if (slot && slot.state === 'error' && Date.now() - (slot.t || 0) > 15000) { MODELS.delete(url); slot = null; }
   if (!slot) {
     slot = { state: 'loading', listeners: new Set() };
     MODELS.set(url, slot);
@@ -17,7 +18,7 @@ function loadModelText(url, onDone) {
         if (!slot.binary) slot.text = new TextDecoder('utf-8').decode(buf);
         slot.state = 'ok';
       })
-      .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; })
+      .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; slot.t = Date.now(); })
       .finally(() => { slot.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); slot.listeners.clear(); });
   }
   if (slot.state === 'loading' && onDone) slot.listeners.add(onDone);

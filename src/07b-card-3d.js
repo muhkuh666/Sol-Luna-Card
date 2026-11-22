@@ -130,7 +130,7 @@ Object.assign(SolLunaCard.prototype, {
     this._buildingFaces();
     const st = this._modelStatus;
     if (!st) return '';
-    return st === 'loading' ? ` · ${esc(t.modelLoading)}` : `<br><span class="merr">⚠ ${esc(t.modelError)}: ${esc(st)}</span>`;
+    return st === 'loading' ? ` · ${esc(t.modelLoading)}` : `<br><span class="merr">⚠ ${esc(t.modelError)}: ${esc(st)}${/404/.test(st) ? ` (${esc(String(this._config.house_model || ''))})` : ''}</span>`;
   },
 
   _after3d(D) {
