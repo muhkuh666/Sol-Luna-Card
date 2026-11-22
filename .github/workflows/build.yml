@@ -1,0 +1,16 @@
+name: Build check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: dist aus src neu bauen und vergleichen
+        run: |
+          python3 build.py
+          node -e "new Function(require('fs').readFileSync('dist/sol-luna-card.js','utf8'))"
+          git diff --exit-code dist/sol-luna-card.js
