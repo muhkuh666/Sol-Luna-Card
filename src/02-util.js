@@ -74,11 +74,12 @@ function crossings(samples, key, thr) {
 const first = (arr, rising) => (arr.find((c) => c.rising === rising) || {}).t;
 
 function auroraLevel(s) {
+  // 0 ruhig · 2 mäßig · 3 aktiv · 4 sehr aktiv (Stufen wie im NOAA-Aurora-Dashboard)
   const x = String(s || '').toLowerCase();
-  if (/extreme|severe|strong|g[345]\b|stark|schwer|extrem/.test(x)) return 4;
-  if (/storm|sturm|g[12]\b|minor|moderate/.test(x)) return 3;
-  if (/active|aktiv|high|hoch/.test(x) && !/inactive|inaktiv/.test(x)) return 2;
-  if (/unsettled|unruhig|elevated|erhöht|mittel/.test(x)) return 1;
+  if (/very active|sehr aktiv|zeer actief|très actif|mycket aktiv|svært aktiv|meget aktiv|extreme|severe|extrem|schwer|g[45]\b/.test(x)) return 4;
+  if (/strong|stark|moderate storm|g[23]\b/.test(x)) return 3;
+  if (/(^|[^a-z])(active|aktiv|actief|actif|aktivt)/.test(x) && !/inactive|inaktiv/.test(x)) return 3;
+  if (/moderate|mäßig|matig|modéré|måttlig|moderat|unsettled|unruhig|minor|elevated|erhöht|g1\b/.test(x)) return 2;
   return 0;
 }
 const AURORA_LEVEL_COLORS = ['var(--slc-sub)', '#e8d44d', '#4DFFB0', '#ff9f43', '#ff5c7a'];

@@ -132,7 +132,7 @@ Web pages are not allowed to fetch the PVGIS terrain profile directly. It theref
 - [`noaa-planetary-k-index-forecast.json`](https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json) – current Kp index and 3-day Kp forecast (old and new NOAA formats are supported)
 - [`ovation_aurora_latest.json`](https://services.swpc.noaa.gov/json/ovation_aurora_latest.json) – OVATION model, giving the aurora probability at your location (~0.9 MB, can be turned off with `aurora_ovation: false`)
 
-The daily forecast uses the highest expected Kp of each day. Whether aurora is possible at your location is estimated with a rule of thumb for Europe (needed Kp ≈ (66 − latitude) / 2, e.g. Kp 7 at 52° N). The alert turns on when visibility reaches `aurora_threshold` (default 50 %) or the current Kp reaches that value. Data is refreshed every `aurora_update_minutes` (default 15) and shared by all cards on the dashboard.
+Activity levels follow the NOAA Aurora Dashboard: Kp 3 quiet, Kp 5 moderate, Kp 7 active, Kp 9 very active, plus the NOAA G scale (G1–G5). The daily forecast uses the highest expected Kp of each day. Whether aurora is possible at your location is estimated with a rule of thumb for Europe (needed Kp ≈ (66 − latitude) / 2, e.g. Kp 7 at 52° N). The alert turns on when visibility reaches `aurora_threshold` (default 50 %) or the current Kp reaches that value. Data is refreshed every `aurora_update_minutes` (default 15) and shared by all cards on the dashboard.
 
 ```yaml
 aurora_source: internet

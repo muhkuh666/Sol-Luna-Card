@@ -40,8 +40,18 @@ function noaaGet(key, maxAgeMs) {
     .catch((e) => { slot.error = String(e.message || e); slot.ts = Date.now() - maxAgeMs + 120000; })
     .finally(() => { slot.loading = false; NOAA.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); });
 }
+/** NOAA-G-Skala aus Kp (G1 ab 5-, G2 ab 6-, G3 ab 7-, G4 ab 8-, G5 bei 9o) */
+function kpGScale(kp) {
+  return kp >= 9 ? 5 : kp >= 7.66 ? 4 : kp >= 6.66 ? 3 : kp >= 5.66 ? 2 : kp >= 4.66 ? 1 : 0;
+}
+function kpText(kp, t) {
+  const g = kpGScale(kp);
+  return String(t.levels[kpLevelKey(kp)] || '').toLowerCase() + (g ? ` · G${g}` : '');
+}
 function kpLevelKey(kp) {
-  return kp < 3 ? 'quiet' : kp < 4 ? 'unsettled' : kp < 5 ? 'active' : kp < 6 ? 'minor storm' : kp < 7 ? 'moderate storm' : kp < 8 ? 'strong storm' : kp < 9 ? 'severe storm' : 'extreme storm';
+  // Stufen wie im NOAA-Aurora-Dashboard: Kp 3 ruhig, 5 mäßig, 7 aktiv, 9 sehr aktiv
+  // Kp-Drittel: 4- = 3,67 zählt bereits zu Kp 4
+  return kp < 3.66 ? 'quiet' : kp < 6.66 ? 'moderate' : kp < 8.66 ? 'active' : 'very active';
 }
 /** Faustregel: benötigter Kp für Polarlicht am Horizont bei geogr. Breite (Europa) */
 const kpNeeded = (lat) => clamp(Math.round((66 - Math.abs(lat)) / 2), 1, 9);

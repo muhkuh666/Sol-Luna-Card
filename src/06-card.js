@@ -465,7 +465,7 @@ class SolLunaCard extends HTMLElement {
       const kp = A.kp;
       const segs = Array.from({ length: 9 }, (_, i) => `<span class="seg" style="${kp != null && kp >= i + 0.5 ? `background:${kpColor(i + 1)}` : ''}"></span>`).join('');
       stats.push(`<div class="astat kpstat" data-entity="${esc(A.e.kp)}">
-        <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(t.kpWords[clamp(Math.round(kp), 0, 9)])}</span></div>
+        <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(kpText(kp, t))}</span></div>
         <div class="kpbar">${segs}</div><div class="albl">${esc(t.kp)}</div></div></div>`);
     }
     if (A.e.activity) {

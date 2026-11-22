@@ -132,7 +132,7 @@ Mit `aurora_source` legst du fest, woher die Daten kommen:
 - [`noaa-planetary-k-index-forecast.json`](https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json) – aktueller Kp-Index und Kp-Vorhersage für 3 Tage (altes und neues NOAA-Format werden unterstützt)
 - [`ovation_aurora_latest.json`](https://services.swpc.noaa.gov/json/ovation_aurora_latest.json) – OVATION-Modell, daraus die Polarlicht-Wahrscheinlichkeit an deinem Standort (~0,9 MB, abschaltbar mit `aurora_ovation: false`)
 
-Die Tagesvorhersage nutzt den höchsten erwarteten Kp-Wert des Tages. Ob Polarlicht bei dir möglich ist, schätzt die Karte mit einer Faustregel für Europa (benötigter Kp ≈ (66 − Breitengrad) / 2, z. B. Kp 7 bei 52° N). Die Warnung wird aktiv, wenn die Sichtbarkeit `aurora_threshold` (Standard 50 %) erreicht oder der aktuelle Kp diesen Wert erreicht. Die Daten werden alle `aurora_update_minutes` (Standard 15) neu geladen und von allen Karten im Dashboard gemeinsam genutzt.
+Die Aktivitätsstufen folgen dem NOAA-Aurora-Dashboard: Kp 3 ruhig, Kp 5 mäßig, Kp 7 aktiv, Kp 9 sehr aktiv, dazu die NOAA-G-Skala (G1–G5). Die Tagesvorhersage nutzt den höchsten erwarteten Kp-Wert des Tages. Ob Polarlicht bei dir möglich ist, schätzt die Karte mit einer Faustregel für Europa (benötigter Kp ≈ (66 − Breitengrad) / 2, z. B. Kp 7 bei 52° N). Die Warnung wird aktiv, wenn die Sichtbarkeit `aurora_threshold` (Standard 50 %) erreicht oder der aktuelle Kp diesen Wert erreicht. Die Daten werden alle `aurora_update_minutes` (Standard 15) neu geladen und von allen Karten im Dashboard gemeinsam genutzt.
 
 ```yaml
 aurora_source: internet

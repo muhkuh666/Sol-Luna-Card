@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const VERSION = '2.0.1';
+const VERSION = '2.0.2';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -467,11 +467,12 @@ function crossings(samples, key, thr) {
 const first = (arr, rising) => (arr.find((c) => c.rising === rising) || {}).t;
 
 function auroraLevel(s) {
+  // 0 ruhig · 2 mäßig · 3 aktiv · 4 sehr aktiv (Stufen wie im NOAA-Aurora-Dashboard)
   const x = String(s || '').toLowerCase();
-  if (/extreme|severe|strong|g[345]\b|stark|schwer|extrem/.test(x)) return 4;
-  if (/storm|sturm|g[12]\b|minor|moderate/.test(x)) return 3;
-  if (/active|aktiv|high|hoch/.test(x) && !/inactive|inaktiv/.test(x)) return 2;
-  if (/unsettled|unruhig|elevated|erhöht|mittel/.test(x)) return 1;
+  if (/very active|sehr aktiv|zeer actief|très actif|mycket aktiv|svært aktiv|meget aktiv|extreme|severe|extrem|schwer|g[45]\b/.test(x)) return 4;
+  if (/strong|stark|moderate storm|g[23]\b/.test(x)) return 3;
+  if (/(^|[^a-z])(active|aktiv|actief|actif|aktivt)/.test(x) && !/inactive|inaktiv/.test(x)) return 3;
+  if (/moderate|mäßig|matig|modéré|måttlig|moderat|unsettled|unruhig|minor|elevated|erhöht|g1\b/.test(x)) return 2;
   return 0;
 }
 const AURORA_LEVEL_COLORS = ['var(--slc-sub)', '#e8d44d', '#4DFFB0', '#ff9f43', '#ff5c7a'];
@@ -559,8 +560,18 @@ function noaaGet(key, maxAgeMs) {
     .catch((e) => { slot.error = String(e.message || e); slot.ts = Date.now() - maxAgeMs + 120000; })
     .finally(() => { slot.loading = false; NOAA.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); });
 }
+/** NOAA-G-Skala aus Kp (G1 ab 5-, G2 ab 6-, G3 ab 7-, G4 ab 8-, G5 bei 9o) */
+function kpGScale(kp) {
+  return kp >= 9 ? 5 : kp >= 7.66 ? 4 : kp >= 6.66 ? 3 : kp >= 5.66 ? 2 : kp >= 4.66 ? 1 : 0;
+}
+function kpText(kp, t) {
+  const g = kpGScale(kp);
+  return String(t.levels[kpLevelKey(kp)] || '').toLowerCase() + (g ? ` · G${g}` : '');
+}
 function kpLevelKey(kp) {
-  return kp < 3 ? 'quiet' : kp < 4 ? 'unsettled' : kp < 5 ? 'active' : kp < 6 ? 'minor storm' : kp < 7 ? 'moderate storm' : kp < 8 ? 'strong storm' : kp < 9 ? 'severe storm' : 'extreme storm';
+  // Stufen wie im NOAA-Aurora-Dashboard: Kp 3 ruhig, 5 mäßig, 7 aktiv, 9 sehr aktiv
+  // Kp-Drittel: 4- = 3,67 zählt bereits zu Kp 4
+  return kp < 3.66 ? 'quiet' : kp < 6.66 ? 'moderate' : kp < 8.66 ? 'active' : 'very active';
 }
 /** Faustregel: benötigter Kp für Polarlicht am Horizont bei geogr. Breite (Europa) */
 const kpNeeded = (lat) => clamp(Math.round((66 - Math.abs(lat)) / 2), 1, 9);
@@ -668,8 +679,8 @@ const STR = {
     dirs: ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'],
     aurora: 'Polarlicht', visibility: 'Sichtbarkeit', kp: 'Kp-Index', alert: 'Warnung', alertOn: 'Warnung aktiv',
     on: 'An', off: 'Aus', days3: ['Heute', 'Morgen', 'Übermorgen'],
-    levels: { quiet: 'Ruhig', unsettled: 'Unruhig', active: 'Aktiv', 'minor storm': 'Schwacher Sturm', 'moderate storm': 'Mäßiger Sturm', 'strong storm': 'Starker Sturm', 'severe storm': 'Schwerer Sturm', 'extreme storm': 'Extremer Sturm', storm: 'Sturm' },
-    kpWords: ['ruhig', 'ruhig', 'ruhig', 'unruhig', 'aktiv', 'Sturm G1', 'Sturm G2', 'Sturm G3', 'Sturm G4', 'Sturm G5'],
+    levels: { quiet: 'Ruhig', moderate: 'Mäßig', active: 'Aktiv', 'very active': 'Sehr aktiv', unsettled: 'Mäßig', 'minor storm': 'Mäßig', 'moderate storm': 'Aktiv', 'strong storm': 'Aktiv', 'severe storm': 'Sehr aktiv', 'extreme storm': 'Sehr aktiv', storm: 'Aktiv' },
+    kpWords: ['ruhig', 'ruhig', 'ruhig', 'ruhig', 'mäßig', 'mäßig · G1', 'aktiv · G2', 'aktiv · G3', 'sehr aktiv · G4', 'sehr aktiv · G5'],
     maxKp: 'Max. Kp', chanceGood: 'Polarlicht am Nordhorizont möglich', chanceMaybe: 'evtl. mit Kamera sichtbar',
     chanceLow: (n) => `hier unwahrscheinlich (ab ca. Kp ${n})`, source: 'Quelle', loading: 'Lade Daten …',
     noaaError: 'NOAA-Daten nicht erreichbar', butCloudy: 'aber bewölkt',
@@ -711,8 +722,8 @@ const STR = {
     dirs: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
     aurora: 'Aurora', visibility: 'Visibility', kp: 'Kp index', alert: 'Alert', alertOn: 'Alert active',
     on: 'On', off: 'Off', days3: ['Today', 'Tomorrow', 'Day after'],
-    levels: { quiet: 'Quiet', unsettled: 'Unsettled', active: 'Active', 'minor storm': 'Minor storm', 'moderate storm': 'Moderate storm', 'strong storm': 'Strong storm', 'severe storm': 'Severe storm', 'extreme storm': 'Extreme storm' },
-    kpWords: ['quiet', 'quiet', 'quiet', 'unsettled', 'active', 'storm G1', 'storm G2', 'storm G3', 'storm G4', 'storm G5'],
+    levels: { quiet: 'Quiet', moderate: 'Moderate', active: 'Active', 'very active': 'Very active', unsettled: 'Moderate', 'minor storm': 'Moderate', 'moderate storm': 'Active', 'strong storm': 'Active', 'severe storm': 'Very active', 'extreme storm': 'Very active', storm: 'Active' },
+    kpWords: ['quiet', 'quiet', 'quiet', 'quiet', 'moderate', 'moderate · G1', 'active · G2', 'active · G3', 'very active · G4', 'very active · G5'],
     maxKp: 'Max Kp', chanceGood: 'aurora possible on the horizon', chanceMaybe: 'maybe visible on camera',
     chanceLow: (n) => `unlikely here (needs ~Kp ${n})`, source: 'Source', loading: 'Loading data …',
     noaaError: 'NOAA data unavailable', butCloudy: 'but cloudy',
@@ -752,7 +763,8 @@ const STR = {
     dirs: ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'],
     aurora: 'Noorderlicht', visibility: 'Zichtbaarheid', kp: 'Kp-index', alert: 'Waarschuwing', alertOn: 'Waarschuwing actief',
     on: 'Aan', off: 'Uit', days3: ['Vandaag', 'Morgen', 'Overmorgen'],
-    levels: { quiet: 'Rustig', unsettled: 'Onrustig', active: 'Actief', 'minor storm': 'Lichte storm', 'moderate storm': 'Matige storm', 'strong storm': 'Sterke storm', 'severe storm': 'Zware storm', 'extreme storm': 'Extreme storm' },
+    levels: { quiet: 'Rustig', moderate: 'Matig', active: 'Actief', 'very active': 'Zeer actief', unsettled: 'Matig', 'minor storm': 'Matig', 'moderate storm': 'Actief', 'strong storm': 'Actief', 'severe storm': 'Zeer actief', 'extreme storm': 'Zeer actief', storm: 'Actief' },
+    kpWords: ['rustig', 'rustig', 'rustig', 'rustig', 'matig', 'matig · G1', 'actief · G2', 'actief · G3', 'zeer actief · G4', 'zeer actief · G5'],
     maxKp: 'Max. Kp', chanceGood: 'noorderlicht aan de horizon mogelijk', chanceMaybe: 'mogelijk op camera zichtbaar',
     chanceLow: (n) => `hier onwaarschijnlijk (vanaf ca. Kp ${n})`, source: 'Bron', loading: 'Gegevens laden …', butCloudy: 'maar bewolkt',
     tabs: { today: 'Vandaag', night: 'Nacht', year: 'Jaar' }, now: 'Nu',
@@ -790,7 +802,8 @@ const STR = {
     dirs: ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'],
     aurora: 'Aurore boréale', visibility: 'Visibilité', kp: 'Indice Kp', alert: 'Alerte', alertOn: 'Alerte active',
     on: 'Oui', off: 'Non', days3: ["Aujourd'hui", 'Demain', 'Après-demain'],
-    levels: { quiet: 'Calme', unsettled: 'Agité', active: 'Actif', 'minor storm': 'Tempête faible', 'moderate storm': 'Tempête modérée', 'strong storm': 'Forte tempête', 'severe storm': 'Tempête sévère', 'extreme storm': 'Tempête extrême' },
+    levels: { quiet: 'Calme', moderate: 'Modéré', active: 'Actif', 'very active': 'Très actif', unsettled: 'Modéré', 'minor storm': 'Modéré', 'moderate storm': 'Actif', 'strong storm': 'Actif', 'severe storm': 'Très actif', 'extreme storm': 'Très actif', storm: 'Actif' },
+    kpWords: ['calme', 'calme', 'calme', 'calme', 'modéré', 'modéré · G1', 'actif · G2', 'actif · G3', 'très actif · G4', 'très actif · G5'],
     maxKp: 'Kp max', chanceGood: "aurore possible à l'horizon", chanceMaybe: 'peut-être visible en photo',
     chanceLow: (n) => `peu probable ici (Kp ~${n} requis)`, source: 'Source', loading: 'Chargement …', butCloudy: 'mais nuageux',
     tabs: { today: "Aujourd'hui", night: 'Nuit', year: 'Année' }, now: 'Maintenant',
@@ -828,7 +841,8 @@ const STR = {
     dirs: ['N', 'NO', 'O', 'SO', 'S', 'SV', 'V', 'NV'],
     aurora: 'Norrsken', visibility: 'Synlighet', kp: 'Kp-index', alert: 'Varning', alertOn: 'Varning aktiv',
     on: 'På', off: 'Av', days3: ['Idag', 'Imorgon', 'I övermorgon'],
-    levels: { quiet: 'Lugnt', unsettled: 'Oroligt', active: 'Aktivt', 'minor storm': 'Svag storm', 'moderate storm': 'Måttlig storm', 'strong storm': 'Stark storm', 'severe storm': 'Kraftig storm', 'extreme storm': 'Extrem storm' },
+    levels: { quiet: 'Lugnt', moderate: 'Måttligt', active: 'Aktivt', 'very active': 'Mycket aktivt', unsettled: 'Måttligt', 'minor storm': 'Måttligt', 'moderate storm': 'Aktivt', 'strong storm': 'Aktivt', 'severe storm': 'Mycket aktivt', 'extreme storm': 'Mycket aktivt', storm: 'Aktivt' },
+    kpWords: ['lugnt', 'lugnt', 'lugnt', 'lugnt', 'måttligt', 'måttligt · G1', 'aktivt · G2', 'aktivt · G3', 'mycket aktivt · G4', 'mycket aktivt · G5'],
     maxKp: 'Max Kp', chanceGood: 'norrsken möjligt vid horisonten', chanceMaybe: 'kanske synligt med kamera',
     chanceLow: (n) => `osannolikt här (kräver ~Kp ${n})`, source: 'Källa', loading: 'Laddar …', butCloudy: 'men molnigt',
     tabs: { today: 'Idag', night: 'Natt', year: 'År' }, now: 'Nu',
@@ -866,7 +880,8 @@ const STR = {
     dirs: ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'],
     aurora: 'Nordlys', visibility: 'Synlighet', kp: 'Kp-indeks', alert: 'Varsel', alertOn: 'Varsel aktivt',
     on: 'På', off: 'Av', days3: ['I dag', 'I morgen', 'I overmorgen'],
-    levels: { quiet: 'Rolig', unsettled: 'Urolig', active: 'Aktiv', 'minor storm': 'Svak storm', 'moderate storm': 'Moderat storm', 'strong storm': 'Sterk storm', 'severe storm': 'Kraftig storm', 'extreme storm': 'Ekstrem storm' },
+    levels: { quiet: 'Rolig', moderate: 'Moderat', active: 'Aktiv', 'very active': 'Svært aktiv', unsettled: 'Moderat', 'minor storm': 'Moderat', 'moderate storm': 'Aktiv', 'strong storm': 'Aktiv', 'severe storm': 'Svært aktiv', 'extreme storm': 'Svært aktiv', storm: 'Aktiv' },
+    kpWords: ['rolig', 'rolig', 'rolig', 'rolig', 'moderat', 'moderat · G1', 'aktiv · G2', 'aktiv · G3', 'svært aktiv · G4', 'svært aktiv · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys mulig i horisonten', chanceMaybe: 'kanskje synlig på kamera',
     chanceLow: (n) => `lite sannsynlig her (krever ~Kp ${n})`, source: 'Kilde', loading: 'Laster …', butCloudy: 'men skyet',
     tabs: { today: 'I dag', night: 'Natt', year: 'År' }, now: 'Nå',
@@ -904,7 +919,8 @@ const STR = {
     dirs: ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'],
     aurora: 'Nordlys', visibility: 'Synlighed', kp: 'Kp-indeks', alert: 'Advarsel', alertOn: 'Advarsel aktiv',
     on: 'Til', off: 'Fra', days3: ['I dag', 'I morgen', 'I overmorgen'],
-    levels: { quiet: 'Roligt', unsettled: 'Uroligt', active: 'Aktivt', 'minor storm': 'Svag storm', 'moderate storm': 'Moderat storm', 'strong storm': 'Kraftig storm', 'severe storm': 'Svær storm', 'extreme storm': 'Ekstrem storm' },
+    levels: { quiet: 'Roligt', moderate: 'Moderat', active: 'Aktivt', 'very active': 'Meget aktivt', unsettled: 'Moderat', 'minor storm': 'Moderat', 'moderate storm': 'Aktivt', 'strong storm': 'Aktivt', 'severe storm': 'Meget aktivt', 'extreme storm': 'Meget aktivt', storm: 'Aktivt' },
+    kpWords: ['roligt', 'roligt', 'roligt', 'roligt', 'moderat', 'moderat · G1', 'aktivt · G2', 'aktivt · G3', 'meget aktivt · G4', 'meget aktivt · G5'],
     maxKp: 'Maks Kp', chanceGood: 'nordlys muligt i horisonten', chanceMaybe: 'måske synligt på kamera',
     chanceLow: (n) => `usandsynligt her (kræver ~Kp ${n})`, source: 'Kilde', loading: 'Henter …', butCloudy: 'men skyet',
     tabs: { today: 'I dag', night: 'Nat', year: 'År' }, now: 'Nu',
@@ -1500,7 +1516,7 @@ class SolLunaCard extends HTMLElement {
       const kp = A.kp;
       const segs = Array.from({ length: 9 }, (_, i) => `<span class="seg" style="${kp != null && kp >= i + 0.5 ? `background:${kpColor(i + 1)}` : ''}"></span>`).join('');
       stats.push(`<div class="astat kpstat" data-entity="${esc(A.e.kp)}">
-        <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(t.kpWords[clamp(Math.round(kp), 0, 9)])}</span></div>
+        <div><div class="aval">${kp == null ? '—' : F.num(kp, 1)} <span class="kpw" style="color:${kp == null ? 'inherit' : kpColor(kp)}">${kp == null ? '' : esc(kpText(kp, t))}</span></div>
         <div class="kpbar">${segs}</div><div class="albl">${esc(t.kp)}</div></div></div>`);
     }
     if (A.e.activity) {
