@@ -77,7 +77,7 @@ class SolLunaCard extends HTMLElement {
       if (!el) return;
       if (el.dataset.tab) {
         this._tab = el.dataset.tab;
-        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; }
+        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; this._zoom3d = null; }
         if (el.dataset.tab === 'night') this._skyTime = null;
         this._render();
         return;
@@ -97,8 +97,24 @@ class SolLunaCard extends HTMLElement {
       if (el?.dataset?.action === 'skytime') { this._skyTime = Number(el.value); this._updateSkyMap(); }
       if (el?.dataset?.action === 't3d') this._onT3d(el.value);
     });
+    root.addEventListener('wheel', (e) => {
+      const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (!cv) return;
+      e.preventDefault();
+      this._zoom3d = clamp((this._zoom3d ?? (Number(this._config.model_zoom) || 1)) * Math.exp(-e.deltaY * 0.0015), 0.4, 6);
+      if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+    }, { passive: false });
+    this._ptrs = new Map();
     root.addEventListener('pointerdown', (e) => {
       const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (cv) this._ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (cv && this._ptrs.size === 2) {
+        const [a, b] = [...this._ptrs.values()];
+        this._pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: this._zoom3d ?? (Number(this._config.model_zoom) || 1) };
+        this._rot3d = null;
+        try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
+        return;
+      }
       if (cv) {
         this._rot3d = { x: e.clientX, y: e.clientY, yaw: this._yaw3d ?? 105, pitch: this._pitch3d ?? 30, id: e.pointerId };
         try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
@@ -113,6 +129,13 @@ class SolLunaCard extends HTMLElement {
       this._scrubTo(e.clientX);
     });
     this.addEventListener('pointermove', (e) => {
+      if (this._ptrs?.has(e.pointerId)) this._ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (this._pinch && this._ptrs.size >= 2) {
+        const [a, b] = [...this._ptrs.values()];
+        this._zoom3d = clamp(this._pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / (this._pinch.d || 1), 0.4, 6);
+        if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+        return;
+      }
       const R3 = this._rot3d;
       if (R3 && e.pointerId === R3.id) {
         this._yaw3d = (R3.yaw - (e.clientX - R3.x) * 0.5 + 360) % 360;
@@ -120,6 +143,9 @@ class SolLunaCard extends HTMLElement {
         if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
       }
     });
+    const endPtr = (e) => { this._ptrs?.delete(e.pointerId); if (this._ptrs && this._ptrs.size < 2) this._pinch = null; };
+    this.addEventListener('pointerup', endPtr);
+    this.addEventListener('pointercancel', endPtr);
     const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } } };
     this.addEventListener('pointerup', end3);
     this.addEventListener('pointercancel', end3);

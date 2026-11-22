@@ -26,8 +26,8 @@ A Home Assistant card for the **sun, moon and sky**: daily sun and moon paths, a
 - **Eclipses**: solar and lunar eclipses of the coming years, **calculated for your location** (coverage, times, visibility).
 
 **3D**
-- **Sky dome & house**: your house (gable roof, size, orientation, PV modules configurable) under a hemisphere with sun, moon, visible planets and bright stars, a real-time shadow and sun paths for today, summer and winter. Drag to rotate, slider for the time of day.
-- **Import your real house**: official LoD2 building models (CityJSON) or your own OBJ model.
+- **Sky dome & house**: your house (gable roof, size, orientation, PV modules configurable) under a hemisphere with sun, moon, visible planets and bright stars, a real-time shadow and sun paths for today, summer and winter. Drag to rotate, mouse wheel / pinch to zoom, slider for the time of day.
+- **Import your real house**: GLB/glTF with colours, official LoD2 building models (CityJSON) or OBJ (+ MTL).
 
 **Year**
 - **Day length through the year** with a marker for today.
@@ -125,10 +125,11 @@ Set `house_source: file` and point `house_model` to a file in `/config/www` (ser
 
 ```yaml
 house_source: file
-house_model: /local/house.json   # CityJSON (LoD2) or /local/house.obj
+house_model: /local/house.glb    # GLB/glTF, CityJSON (LoD2) or OBJ
 model_rotation: 0                # degrees clockwise, to align north (mainly OBJ)
 model_scale: 1                   # 1 = metres, 0.01 = centimetres
 model_up: auto                   # OBJ only: auto | y (Blender default) | z (SketchUp/CAD)
+model_zoom: 1                    # start zoom of the 3D view
 pv_flat_roofs: false             # also draw PV on flat roofs
 ```
 
@@ -140,7 +141,9 @@ https://ogc-api.nrw.de/3dg/v1/collections/building/items?f=cityjson&bbox=<lon-0.
 
 Save the result as `/config/www/house.json`. CityGML files can be converted to CityJSON with [citygml-tools](https://github.com/citygml4j/citygml-tools).
 
-**OBJ (your own model)** – export from Blender, SketchUp, SweetHome3D etc. Parts or materials whose name contains `roof`/`Dach` become roof, `PV`/`solar`/`panel`/`Modul` become PV modules; everything else is classified by its slope. Units should be metres (otherwise use `model_scale`), and the model should be centred roughly on the house.
+**GLB / glTF (recommended for your own model)** – exported from Blender, SketchUp, SweetHome3D, three.js etc. Colours of all parts are taken from the materials, flat parts at ground level (lawn, paths) are drawn as ground cover. glTF must have embedded buffers (or use GLB). Y up, north = −Z.
+
+**OBJ (your own model)** – export from Blender, SketchUp, SweetHome3D etc. Parts or materials whose name contains `roof`/`Dach` become roof, `PV`/`solar`/`panel`/`Modul` become PV modules; everything else is classified by its slope. If the `.mtl` file named in the OBJ (`mtllib`) lies in the same folder, its colours (`Kd`) are used. Units should be metres (otherwise use `model_scale`), and the model should be centred roughly on the house.
 
 **Simple JSON** – a list of faces `[{ "t": "r"|"w"|"pv", "p": [[x, y, z], …] }, …]` in metres (x = east, y = north, z = up).
 

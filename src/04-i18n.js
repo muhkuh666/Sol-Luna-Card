@@ -4,7 +4,7 @@
 const STR = {
   de: {
     modelLoading: 'Modell wird geladen …', modelError: 'Modell konnte nicht geladen werden',
-    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
+    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Mausrad/zwei Finger = Zoom · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
@@ -49,7 +49,7 @@ const STR = {
   },
   en: {
     modelLoading: 'Loading model …', modelError: 'Model could not be loaded',
-    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
+    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · wheel/pinch = zoom · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],

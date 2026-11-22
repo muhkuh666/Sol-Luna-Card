@@ -83,7 +83,8 @@ const DEFAULTS = {
   house_model: '',             // z. B. /local/haus.json oder /local/haus.obj
   model_up: 'auto',            // auto | y | z (nur OBJ)
   model_scale: 1,              // 1 = Meter, 0.01 = Zentimeter …
-  model_rotation: 0,           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
+  model_rotation: 0,
+  model_zoom: 1,               // Start-Zoom im 3D-Tab           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
   building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First

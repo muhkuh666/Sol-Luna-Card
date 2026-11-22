@@ -27,7 +27,7 @@ customElements.define('ha-icon', class extends HTMLElement { static get observed
 (() => {
 'use strict';
 
-const VERSION = '2.3.0';
+const VERSION = '2.4.0';
 
 /* ====================================================================== *
  *  ASTRONOMIE – Sonne, Mond (Meeus), Planeten (JPL), Finsternisse         *
@@ -684,7 +684,7 @@ function parseHorizon(src, pvgisSouth = false) {
 const STR = {
   de: {
     modelLoading: 'Modell wird geladen …', modelError: 'Modell konnte nicht geladen werden',
-    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Regler = Uhrzeit',
+    model3d: 'Himmelskuppel & Haus', hint3d: 'Ziehen zum Drehen · Mausrad/zwei Finger = Zoom · Regler = Uhrzeit',
     activity: 'Aktivität',
     title: 'Sonne & Mond',
     bands: ['Nacht', 'Dämmerung', 'Blaue Stunde', 'Goldene Stunde', 'Tag'],
@@ -729,7 +729,7 @@ const STR = {
   },
   en: {
     modelLoading: 'Loading model …', modelError: 'Model could not be loaded',
-    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · slider = time of day',
+    model3d: 'Sky dome & house', hint3d: 'Drag to rotate · wheel/pinch = zoom · slider = time of day',
     activity: 'Activity',
     title: 'Sun & Moon',
     bands: ['Night', 'Twilight', 'Blue hour', 'Golden hour', 'Day'],
@@ -1074,7 +1074,8 @@ const DEFAULTS = {
   house_model: '',             // z. B. /local/haus.json oder /local/haus.obj
   model_up: 'auto',            // auto | y | z (nur OBJ)
   model_scale: 1,              // 1 = Meter, 0.01 = Zentimeter …
-  model_rotation: 0,           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
+  model_rotation: 0,
+  model_zoom: 1,               // Start-Zoom im 3D-Tab           // Drehung in Grad (im Uhrzeigersinn), um Norden auszurichten
   building_entity: '',
   roof_azimuth: 180,           // Richtung, in die die Hauptdachfläche zeigt (180 = Süd)
   house_width: 10,             // Meter quer zum First
@@ -1184,7 +1185,7 @@ class SolLunaCard extends HTMLElement {
       if (!el) return;
       if (el.dataset.tab) {
         this._tab = el.dataset.tab;
-        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; }
+        if (el.dataset.tab === 'sky3d') { this._time3d = null; this._viewTime = null; this._zoom3d = null; }
         if (el.dataset.tab === 'night') this._skyTime = null;
         this._render();
         return;
@@ -1204,8 +1205,24 @@ class SolLunaCard extends HTMLElement {
       if (el?.dataset?.action === 'skytime') { this._skyTime = Number(el.value); this._updateSkyMap(); }
       if (el?.dataset?.action === 't3d') this._onT3d(el.value);
     });
+    root.addEventListener('wheel', (e) => {
+      const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (!cv) return;
+      e.preventDefault();
+      this._zoom3d = clamp((this._zoom3d ?? (Number(this._config.model_zoom) || 1)) * Math.exp(-e.deltaY * 0.0015), 0.4, 6);
+      if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+    }, { passive: false });
+    this._ptrs = new Map();
     root.addEventListener('pointerdown', (e) => {
       const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
+      if (cv) this._ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (cv && this._ptrs.size === 2) {
+        const [a, b] = [...this._ptrs.values()];
+        this._pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: this._zoom3d ?? (Number(this._config.model_zoom) || 1) };
+        this._rot3d = null;
+        try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
+        return;
+      }
       if (cv) {
         this._rot3d = { x: e.clientX, y: e.clientY, yaw: this._yaw3d ?? 105, pitch: this._pitch3d ?? 30, id: e.pointerId };
         try { this.setPointerCapture(e.pointerId); } catch (x) { /* */ }
@@ -1220,6 +1237,13 @@ class SolLunaCard extends HTMLElement {
       this._scrubTo(e.clientX);
     });
     this.addEventListener('pointermove', (e) => {
+      if (this._ptrs?.has(e.pointerId)) this._ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (this._pinch && this._ptrs.size >= 2) {
+        const [a, b] = [...this._ptrs.values()];
+        this._zoom3d = clamp(this._pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / (this._pinch.d || 1), 0.4, 6);
+        if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
+        return;
+      }
       const R3 = this._rot3d;
       if (R3 && e.pointerId === R3.id) {
         this._yaw3d = (R3.yaw - (e.clientX - R3.x) * 0.5 + 360) % 360;
@@ -1227,6 +1251,9 @@ class SolLunaCard extends HTMLElement {
         if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
       }
     });
+    const endPtr = (e) => { this._ptrs?.delete(e.pointerId); if (this._ptrs && this._ptrs.size < 2) this._pinch = null; };
+    this.addEventListener('pointerup', endPtr);
+    this.addEventListener('pointercancel', endPtr);
     const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } } };
     this.addEventListener('pointerup', end3);
     this.addEventListener('pointercancel', end3);
@@ -2639,6 +2666,11 @@ function shadeHex(hex, f) {
   const c = hex2rgb(hex);
   return rgb2hex(c.map((v) => clamp(v * f, 0, 255)));
 }
+function polyArea(pts) {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; }
+  return a / 2;
+}
 function convexHull(pts) {
   const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   if (p.length < 3) return p;
@@ -2665,11 +2697,20 @@ Object.assign(SolLunaCard.prototype, {
       const slot = loadModelText(url, () => { if (this.isConnected) this._render(); });
       if (slot.state === 'loading') { this._modelStatus = 'loading'; return null; }
       if (slot.state === 'error') { this._modelStatus = slot.error; return null; }
+      // OBJ: Materialdatei (.mtl) aus demselben Ordner mitladen, falls vorhanden
+      let mtlText = null, mtlKey = '';
+      const lib = !slot.binary && /\.obj(\?|$)/i.test(url) ? objMtlLib(slot.text || '') : null;
+      if (lib) {
+        const mtlUrl = url.replace(/[^/]*$/, '') + lib;
+        const ms = loadModelText(mtlUrl, () => { if (this.isConnected) this._render(); });
+        if (ms.state === 'loading') { this._modelStatus = 'loading'; return null; }
+        if (ms.state === 'ok') { mtlText = ms.text; mtlKey = mtlUrl; }
+      }
       const X = this._ctx();
-      const key = ['f', url, c.model_up, c.model_scale, c.model_rotation, X.lat, X.lng].join('|');
+      const key = ['f', url, mtlKey, c.model_up, c.model_scale, c.model_rotation, X.lat, X.lng].join('|');
       return {
         key, faces: () => {
-          try { return parseHouseModel(slot.text, url, { up: c.model_up, scale: c.model_scale, rotation: c.model_rotation, lat: X.lat, lon: X.lng }); }
+          try { return parseHouseModel(slot.text || '', url, { buf: slot.buf, binary: slot.binary, mtl: mtlText, up: c.model_up, scale: c.model_scale, rotation: c.model_rotation, lat: X.lat, lon: X.lng }); }
           catch (e) { console.error('sol-luna-card model', e); return { error: String(e.message || e) }; }
         },
       };
@@ -2683,13 +2724,15 @@ Object.assign(SolLunaCard.prototype, {
     const res = this._cached('bld|' + src.key, () => {
       const faces = src.faces();
       if (!Array.isArray(faces)) return faces;
-      const out = [];
+      const out = [], ground = [];
       const all = faces.flatMap((f) => f.p || []);
       if (!all.length) return { error: 'leer' };
       const cxy = [all.reduce((s, p) => s + p[0], 0) / all.length, all.reduce((s, p) => s + p[1], 0) / all.length];
       for (const f of faces) {
         if (!Array.isArray(f.p) || f.p.length < 3 || f.t === 'g') continue;
         const pts = f.p.map((p) => [Number(p[0]), Number(p[1]), Number(p[2])]);
+        // flache Teile direkt am Boden (Rasen, Wege, Bodenplatte) → Bodenbelag
+        if (pts.every((p) => p[2] < 0.25)) { if (f.c) ground.push({ pts, c: f.c }); continue; }
         // Normale nach Newell, nach außen gerichtet
         let n = [0, 0, 0];
         for (let i = 0; i < pts.length; i++) {
@@ -2707,11 +2750,13 @@ Object.assign(SolLunaCard.prototype, {
         }
         if (t === 'r' || t === 'pv') { if (n[2] < 0) n = V3.mul(n, -1); }
         else if (V3.dot(n, [cen[0] - cxy[0], cen[1] - cxy[1], 0]) < 0) n = V3.mul(n, -1);
-        out.push({ kind: t === 'pv' ? 'mpv' : t === 'r' ? 'mroof' : 'mwall', pts, n });
+        out.push({ kind: t === 'pv' ? 'mpv' : t === 'r' ? 'mroof' : 'mwall', pts, n, c: f.c });
       }
       if (!out.length) return { error: 'keine Flächen' };
-      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
-      return { hasPv: out.some((f) => f.kind === 'mpv'), faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
+      const body = out.flatMap((f) => f.pts);
+      const xs = body.map((p) => p[0]), ys = body.map((p) => p[1]), zs = body.map((p) => p[2]);
+      ground.sort((a, b) => Math.abs(polyArea(b.pts)) - Math.abs(polyArea(a.pts)));
+      return { hasPv: out.some((f) => f.kind === 'mpv' || f.c), colored: out.some((f) => f.c), ground, faces: out, ext: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)), height: Math.max(...zs) };
     });
     if (res && res.error) { this._modelStatus = res.error; return null; }
     return res;
@@ -2804,11 +2849,12 @@ Object.assign(SolLunaCard.prototype, {
     const pitch = clamp(Number(c.roof_pitch ?? 35), 0, 65);
     const rh = hw / 2 * Math.tan(pitch * RAD);
     const model = c.show_house === false ? null : this._buildingFaces();
-    const R = model ? Math.max(model.ext * 1.8, model.height * 2.4, 18) : Math.max(hw, hl, wh + rh) * 2.2;
+    const R = model ? Math.max(model.ext * 0.8, model.height * 2.4, 16) : Math.max(hw, hl, wh + rh) * 2.2;
 
     // ---- Kamera
     const yaw = (this._yaw3d ?? 105) * RAD, pit = clamp(this._pitch3d ?? 30, 4, 80) * RAD;
-    const dist = R * 3.1;
+    const zoom = clamp(this._zoom3d ?? (Number(c.model_zoom) || 1), 0.4, 6);
+    const dist = R * 3.1 / zoom;
     const target = [0, 0, R * 0.28];
     const cam = [target[0] + dist * Math.sin(yaw) * Math.cos(pit), target[1] + dist * Math.cos(yaw) * Math.cos(pit), target[2] + dist * Math.sin(pit)];
     const f = V3.norm(V3.sub(target, cam));
@@ -2864,6 +2910,17 @@ Object.assign(SolLunaCard.prototype, {
     g.fillStyle = gg; g.fill();
     g.strokeStyle = 'rgba(255,255,255,.35)'; g.stroke();
 
+    // ---- Bodenbeläge aus dem Modell (Rasen, Wege …)
+    if (model && model.ground.length) {
+      g.save(); poly(gp); g.closePath(); g.clip();
+      for (const gf of model.ground) {
+        g.fillStyle = shadeHex(gf.c, 0.45 + 0.55 * day);
+        line3(gf.pts, true); g.fill();
+        g.strokeStyle = g.fillStyle; g.lineWidth = 0.6; g.stroke();
+      }
+      g.restore();
+    }
+
     // ---- Gelände-Silhouette
     if (D.horizon) {
       g.fillStyle = `rgba(${Math.round(30 + 40 * day)},${Math.round(40 + 50 * day)},${Math.round(45 + 30 * day)},.85)`;
@@ -2916,20 +2973,28 @@ Object.assign(SolLunaCard.prototype, {
     const light = (n) => sun.alt > -1 ? Math.max(0, V3.dot(n, sunDir)) * clamp((sun.alt + 1) / 6, 0, 1) : 0;
     const houseDepth = P([0, 0, model ? model.height / 2 : wh / 2])[2];
 
-    // ---- Schatten
+    // ---- Schatten (jede Fläche einzeln projiziert, als ein Pfad gefüllt → keine Überlagerung)
     if (faces.length && sun.alt > 0.5) {
       const tanA = Math.tan(Math.max(sun.alt, 1.5) * RAD);
       const sx = -Math.sin(sun.az * RAD), sy = -Math.cos(sun.az * RAD);
-      const pts = [];
-      faces.forEach((fc) => fc.pts.forEach((p) => {
-        const d = p[2] / tanA;
-        pts.push([p[0] + sx * d, p[1] + sy * d]);
-      }));
-      const hull = convexHull(pts);
+      const proj = (p) => { const d = p[2] / tanA; return P([p[0] + sx * d, p[1] + sy * d, 0]); };
       g.save();
       poly(gp); g.closePath(); g.clip();
-      poly(hull.map(([x, y]) => P([x, y, 0]))); g.closePath();
-      g.fillStyle = `rgba(0,0,0,${(0.18 + 0.22 * day).toFixed(2)})`; g.fill();
+      g.beginPath();
+      if (model) {
+        for (const fc of faces) {
+          const q = fc.pts.map(proj);
+          q.forEach((pt, i) => (i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])));
+          g.closePath();
+        }
+      } else {
+        const pts = [];
+        faces.forEach((fc) => fc.pts.forEach((p) => { const d = p[2] / tanA; pts.push([p[0] + sx * d, p[1] + sy * d]); }));
+        convexHull(pts).map(([x, y]) => P([x, y, 0])).forEach((pt, i) => (i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])));
+        g.closePath();
+      }
+      g.fillStyle = `rgba(0,0,0,${(0.18 + 0.22 * day).toFixed(2)})`;
+      g.fill('nonzero');
       g.restore();
     }
 
@@ -2983,11 +3048,11 @@ Object.assign(SolLunaCard.prototype, {
     const amb = 0.3 + 0.32 * day;
     for (const fc of vis) {
       const isRoof = fc.kind === 'roof' || fc.kind === 'mroof';
-      const base = fc.kind === 'mpv' ? (c.pv_color || '#1d3557') : isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
+      const base = fc.c ? fc.c : fc.kind === 'mpv' ? (c.pv_color || '#1d3557') : isRoof ? (c.roof_color || '#9a4433') : (c.wall_color || '#ece6da');
       g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
       line3(fc.pts, true); g.fill();
       if (fc.pts.length > 3 && vis.length < 400) { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke(); }
-      else { g.strokeStyle = g.fillStyle; g.lineWidth = 0.7; g.stroke(); }
+      else if (vis.length < 2500) { g.strokeStyle = g.fillStyle; g.lineWidth = 0.7; g.stroke(); }
       // PV-Module auf der Hauptdachfläche
       if (fc.kind === 'roof' && fc.main && c.show_pv) {
         const lerp3 = (a, b, x) => V3.add(a, V3.mul(V3.sub(b, a), x));
@@ -3045,8 +3110,14 @@ function loadModelText(url, onDone) {
     slot = { state: 'loading', listeners: new Set() };
     MODELS.set(url, slot);
     fetch(url, { cache: 'no-cache' })
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
-      .then((txt) => { slot.text = txt; slot.state = 'ok'; })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+      .then((buf) => {
+        slot.buf = buf;
+        const head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+        slot.binary = head[0] === 0x67 && head[1] === 0x6c && head[2] === 0x54 && head[3] === 0x46; // 'glTF'
+        if (!slot.binary) slot.text = new TextDecoder('utf-8').decode(buf);
+        slot.state = 'ok';
+      })
       .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; })
       .finally(() => { slot.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); slot.listeners.clear(); });
   }
@@ -3151,7 +3222,22 @@ function parseCityJSON(text, lat, lon) {
 }
 
 /* ---------- OBJ -------------------------------------------------------------- */
-function parseOBJ(text, up) {
+function parseMTL(text) {
+  const out = {};
+  let cur = null;
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const p = raw.trim().split(/\s+/);
+    if (p[0] === 'newmtl') cur = p.slice(1).join(' ');
+    else if (p[0] === 'Kd' && cur) out[cur] = rgb2hex([Number(p[1]), Number(p[2]), Number(p[3])].map((v) => clamp(v, 0, 1) * 255));
+  }
+  return out;
+}
+function objMtlLib(text) {
+  const m = /^mtllib\s+(.+)$/m.exec(text.slice(0, 5000));
+  return m ? m[1].trim() : null;
+}
+
+function parseOBJ(text, up, mtlColors) {
   const V = [];
   const faces = [];
   let group = '', mtl = '';
@@ -3165,7 +3251,7 @@ function parseOBJ(text, up) {
     else if (key === 'usemtl') mtl = parts.slice(1).join(' ');
     else if (key === 'f') {
       const idx = parts.slice(1).map((p) => { const i = parseInt(p.split('/')[0], 10); return i < 0 ? V.length + i : i - 1; });
-      if (idx.length >= 3) faces.push({ idx, name: `${group} ${mtl}`.toLowerCase() });
+      if (idx.length >= 3) faces.push({ idx, name: `${group} ${mtl}`.toLowerCase(), c: mtlColors ? mtlColors[mtl] : undefined });
     }
   }
   if (!faces.length) throw new Error('Keine Flächen in der OBJ-Datei');
@@ -3185,29 +3271,139 @@ function parseOBJ(text, up) {
     if (/pv|solar|panel|modul/.test(f.name)) t = 'pv';
     else if (/roof|dach/.test(f.name)) t = 'r';
     else if (/ground|boden|floor/.test(f.name)) t = 'g';
-    return { t, p: pts };
+    return f.c ? { t, p: pts, c: f.c } : { t, p: pts };
   }).filter((f) => f.p.length >= 3);
+}
+
+/* ---------- glTF / GLB -------------------------------------------------------- */
+function mat4Mul(a, b) {
+  const o = new Array(16);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    o[j * 4 + i] = a[i] * b[j * 4] + a[4 + i] * b[j * 4 + 1] + a[8 + i] * b[j * 4 + 2] + a[12 + i] * b[j * 4 + 3];
+  }
+  return o;
+}
+function nodeMatrix(n) {
+  if (n.matrix) return n.matrix.slice();
+  const [tx, ty, tz] = n.translation || [0, 0, 0];
+  const [qx, qy, qz, qw] = n.rotation || [0, 0, 0, 1];
+  const [sx, sy, sz] = n.scale || [1, 1, 1];
+  return [
+    (1 - 2 * (qy * qy + qz * qz)) * sx, 2 * (qx * qy + qz * qw) * sx, 2 * (qx * qz - qy * qw) * sx, 0,
+    2 * (qx * qy - qz * qw) * sy, (1 - 2 * (qx * qx + qz * qz)) * sy, 2 * (qy * qz + qx * qw) * sy, 0,
+    2 * (qx * qz + qy * qw) * sz, 2 * (qy * qz - qx * qw) * sz, (1 - 2 * (qx * qx + qy * qy)) * sz, 0,
+    tx, ty, tz, 1,
+  ];
+}
+const lin2srgb = (v) => Math.round(255 * clamp(v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055, 0, 1));
+
+function parseGLTF(json, bin) {
+  const buffers = (json.buffers || []).map((b, i) => {
+    if (i === 0 && bin && !b.uri) return bin;
+    if (b.uri && b.uri.startsWith('data:')) {
+      const raw = atob(b.uri.split(',')[1]);
+      const u = new Uint8Array(raw.length); for (let k = 0; k < raw.length; k++) u[k] = raw.charCodeAt(k);
+      return u.buffer;
+    }
+    throw new Error('Externe .bin-Dateien werden nicht unterstützt – bitte als .glb exportieren');
+  });
+  const read = (ai) => {
+    const acc = json.accessors[ai], bv = json.bufferViews[acc.bufferView];
+    const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[acc.type];
+    const Ctor = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }[acc.componentType];
+    const stride = bv.byteStride || comps * Ctor.BYTES_PER_ELEMENT;
+    const base = (bv.byteOffset || 0) + (acc.byteOffset || 0);
+    const dv = new DataView(buffers[bv.buffer]);
+    const get = { 5120: 'getInt8', 5121: 'getUint8', 5122: 'getInt16', 5123: 'getUint16', 5125: 'getUint32', 5126: 'getFloat32' }[acc.componentType];
+    const out = new Array(acc.count);
+    for (let i = 0; i < acc.count; i++) {
+      const e = [];
+      for (let c = 0; c < comps; c++) e.push(dv[get](base + i * stride + c * Ctor.BYTES_PER_ELEMENT, true));
+      out[i] = comps === 1 ? e[0] : e;
+    }
+    return out;
+  };
+  const faces = [];
+  const matColor = (mi) => {
+    const m = mi != null ? json.materials?.[mi] : null;
+    const f = m?.pbrMetallicRoughness?.baseColorFactor || [0.8, 0.8, 0.8, 1];
+    return { c: rgb2hex([lin2srgb(f[0]), lin2srgb(f[1]), lin2srgb(f[2])]), name: String(m?.name || '').toLowerCase() };
+  };
+  const visit = (ni, parent) => {
+    const n = json.nodes[ni];
+    const M = mat4Mul(parent, nodeMatrix(n));
+    if (n.mesh != null) {
+      for (const prim of json.meshes[n.mesh].primitives || []) {
+        if ((prim.mode ?? 4) !== 4 || prim.attributes?.POSITION == null) continue;
+        const pos = read(prim.attributes.POSITION).map(([x, y, z]) => [
+          M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]]);
+        const idx = prim.indices != null ? read(prim.indices) : pos.map((_, i) => i);
+        const { c, name } = matColor(prim.material);
+        const t = /pv|solar|panel|modul/.test(name) ? 'pv' : /roof|dach/.test(name) ? 'r' : '';
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          // glTF: Y oben, Norden = -Z
+          const p = [idx[i], idx[i + 1], idx[i + 2]].map((k) => [pos[k][0], -pos[k][2], pos[k][1]]);
+          faces.push({ t, c, p });
+        }
+      }
+    }
+    (n.children || []).forEach((ch) => visit(ch, M));
+  };
+  const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const scene = json.scenes?.[json.scene ?? 0];
+  (scene ? scene.nodes : json.nodes.map((_, i) => i)).forEach((ni) => visit(ni, I));
+  if (!faces.length) throw new Error('Keine Dreiecke im glTF-Modell');
+  return faces;
+}
+function parseGLB(buf) {
+  const dv = new DataView(buf);
+  let off = 12, json = null, bin = null;
+  while (off < buf.byteLength) {
+    const len = dv.getUint32(off, true), type = dv.getUint32(off + 4, true);
+    const chunk = buf.slice(off + 8, off + 8 + len);
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(chunk));
+    else if (type === 0x004e4942) bin = chunk;
+    off += 8 + len;
+  }
+  if (!json) throw new Error('Ungültige GLB-Datei');
+  return parseGLTF(json, bin);
 }
 
 /** Text → Flächenliste {t:'r'|'w'|'g'|'pv'|'', p:[[x,y,z]…]} in lokalen Metern */
 function parseHouseModel(text, url, opts) {
-  const head = text.slice(0, 2000).trim();
   let faces;
+  if (opts.buf && opts.binary) {
+    faces = parseGLB(opts.buf);
+    return normalizeFaces(faces, opts);
+  }
+  const head = text.slice(0, 2000).trim();
+  if (/\.gltf(\?|$)/i.test(url) || (head.startsWith('{') && head.includes('"asset"') && head.includes('"accessors"'))) {
+    return normalizeFaces(parseGLTF(JSON.parse(text), null), opts);
+  }
   if (/\.obj(\?|$)/i.test(url) || /^(#|v |o |g |mtllib)/m.test(head) && !head.startsWith('{') && !head.startsWith('[')) {
-    faces = parseOBJ(text, opts.up);
+    faces = parseOBJ(text, opts.up, opts.mtl ? parseMTL(opts.mtl) : null);
   } else {
     const first = head.startsWith('[') ? null : (() => { try { return JSON.parse(text); } catch (e) { return null; } })();
     if (Array.isArray(first) || (head.startsWith('[') && Array.isArray(JSON.parse(text)))) faces = JSON.parse(text);
     else if (first && Array.isArray(first.faces)) faces = first.faces;
     else faces = parseCityJSON(text, opts.lat, opts.lon);
   }
+  return normalizeFaces(faces, opts);
+}
+
+function normalizeFaces(faces, opts) {
   // Skalierung, Drehung, Zentrierung, Boden auf 0
   const sc = Number(opts.scale) || 1, rot = (Number(opts.rotation) || 0) * RAD;
   const cr = Math.cos(rot), sr = Math.sin(rot);
   faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [(x * cr + y * sr) * sc, (-x * sr + y * cr) * sc, z * sc]); });
   const all = faces.flatMap((f) => f.p);
-  const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, z0 = Math.min(...zs);
+  const z0 = all.reduce((m, p) => Math.min(m, p[2]), Infinity);
+  // Zentrieren auf Bauteile oberhalb des Bodens (große Bodenplatten/Rasenflächen ignorieren)
+  const raised = faces.filter((f) => f.p.some((p) => p[2] - z0 > 0.5)).flatMap((f) => f.p);
+  const use = raised.length ? raised : all;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const p of use) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [x - cx, y - cy, z - z0]); });
   return faces;
 }
@@ -3238,8 +3434,8 @@ const ED_STR = {
     aurora_tomorrow_entity: 'Morgen – Stufe', aurora_tomorrow_text_entity: 'Morgen – Text',
     aurora_day_after_entity: 'Übermorgen – Stufe', aurora_day_after_text_entity: 'Übermorgen – Text',
     sec3d: '3D-Modell', show_3d_tab: 'Tab „3D“', show_house: 'Haus anzeigen', house_source: 'Hausform', hs_generic: 'Standardhaus (Maße unten)', hs_file: 'Importiertes Modell (LoD2/CityJSON oder OBJ)', hs_entity: 'Modell aus Entität (Attribut faces)', building_entity: 'Gebäudemodell-Entität',
-    house_model: 'Modell-Datei (z. B. /local/haus.json)', model_up: 'Achse oben (OBJ)', mu_auto: 'Automatisch', model_scale: 'Maßstab (1 = Meter, 0.01 = cm)', model_rotation: 'Drehung (°)',
-    modelHint: 'Datei nach /config/www kopieren und als /local/Dateiname eintragen. LoD2: CityJSON vom Vermessungsamt. OBJ: Bauteile mit „Dach“ bzw. „PV“ im Namen werden erkannt.', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
+    house_model: 'Modell-Datei (z. B. /local/haus.json)', model_up: 'Achse oben (OBJ)', mu_auto: 'Automatisch', model_scale: 'Maßstab (1 = Meter, 0.01 = cm)', model_rotation: 'Drehung (°)', model_zoom: 'Start-Zoom 3D (1 = Standard)',
+    modelHint: 'Datei nach /config/www kopieren und als /local/Dateiname eintragen. Formate: GLB/glTF (mit Farben), LoD2-CityJSON, OBJ. Bauteile mit „Dach“ bzw. „PV“ im Namen werden erkannt.', roof_azimuth: 'Ausrichtung Hauptdach (°, 180 = Süd)',
     house_width: 'Hausbreite quer zum First (m)', house_length: 'Hauslänge entlang First (m)', wall_height: 'Wandhöhe (m)', roof_pitch: 'Dachneigung (°)',
     show_pv: 'PV-Module auf dem Hauptdach', pv_flat_roofs: 'PV auch auf Flachdächern (z. B. Garage)', wall_color: 'Wände', roof_color: 'Dach', pv_color: 'PV-Module', auto_rotate_3d: 'Automatisch drehen', tab_3d: '3D',
     layoutSec: 'Layout & Tabs', layout: 'Layout', ly_full: 'Vollständig', ly_compact: 'Kompakt (Kachel)', default_tab: 'Start-Tab',
@@ -3280,8 +3476,8 @@ const ED_STR = {
     aurora_tomorrow_entity: 'Tomorrow – level', aurora_tomorrow_text_entity: 'Tomorrow – text',
     aurora_day_after_entity: 'Day after – level', aurora_day_after_text_entity: 'Day after – text',
     sec3d: '3D model', show_3d_tab: '“3D” tab', show_house: 'Show house', house_source: 'House shape', hs_generic: 'Generic house (sizes below)', hs_file: 'Imported model (LoD2/CityJSON or OBJ)', hs_entity: 'Model from entity (faces attribute)', building_entity: 'Building model entity',
-    house_model: 'Model file (e.g. /local/house.json)', model_up: 'Up axis (OBJ)', mu_auto: 'Automatic', model_scale: 'Scale (1 = metres, 0.01 = cm)', model_rotation: 'Rotation (°)',
-    modelHint: 'Copy the file to /config/www and enter it as /local/filename. LoD2: CityJSON from the surveying office. OBJ: parts named “roof” or “PV” are detected.', roof_azimuth: 'Main roof orientation (°, 180 = south)',
+    house_model: 'Model file (e.g. /local/house.json)', model_up: 'Up axis (OBJ)', mu_auto: 'Automatic', model_scale: 'Scale (1 = metres, 0.01 = cm)', model_rotation: 'Rotation (°)', model_zoom: '3D start zoom (1 = default)',
+    modelHint: 'Copy the file to /config/www and enter it as /local/filename. Formats: GLB/glTF (with colours), LoD2 CityJSON, OBJ. Parts named “roof” or “PV” are detected.', roof_azimuth: 'Main roof orientation (°, 180 = south)',
     house_width: 'House width across ridge (m)', house_length: 'House length along ridge (m)', wall_height: 'Wall height (m)', roof_pitch: 'Roof pitch (°)',
     show_pv: 'PV modules on main roof', pv_flat_roofs: 'PV on flat roofs too (e.g. garage)', wall_color: 'Walls', roof_color: 'Roof', pv_color: 'PV modules', auto_rotate_3d: 'Auto rotate', tab_3d: '3D',
     layoutSec: 'Layout & tabs', layout: 'Layout', ly_full: 'Full', ly_compact: 'Compact (tile)', default_tab: 'Start tab',
@@ -3379,7 +3575,7 @@ class SolLunaCardEditor extends HTMLElement {
       ${sec(T.nightSec, ['show_sky_map', 'show_sky_tonight', 'show_astro_window', 'show_planets', 'show_meteors', 'show_eclipses'].map(sw).join('') + num('eclipse_years', '1', '3'))}
       ${sec(T.sec3d, sw('show_3d_tab') + sw('show_house') + sel('house_source', [['generic', T.hs_generic], ['file', T.hs_file], ['entity', T.hs_entity]]) +
         `<label class="f wide"><span>${esc(T.house_model)}</span><input data-k="house_model" type="text" placeholder="/local/haus.json"></label>` +
-        sel('model_up', [['auto', T.mu_auto], ['y', 'Y'], ['z', 'Z']]) + num('model_rotation', '1', '0') + num('model_scale', 'any', '1') + '<span></span>' +
+        sel('model_up', [['auto', T.mu_auto], ['y', 'Y'], ['z', 'Z']]) + num('model_rotation', '1', '0') + num('model_scale', 'any', '1') + num('model_zoom', '0.1', '1') +
         `<div class="hint">${esc(T.modelHint)}</div>` +
         `<label class="f"><span>${esc(T.building_entity)}</span><input data-k="building_entity" type="text" list="entlist" placeholder="sensor.…"></label>` + num('roof_azimuth', '1', '180') + num('roof_pitch', '1', '35') +
         num('house_width', '0.5', '10') + num('house_length', '0.5', '12') + num('wall_height', '0.5', '6') + '<span></span>' +

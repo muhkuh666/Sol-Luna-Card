@@ -26,8 +26,8 @@ Eine Home-Assistant-Karte für **Sonne, Mond und Himmel**: Tagesbahn von Sonne u
 - **Finsternisse**: Sonnen- und Mondfinsternisse der nächsten Jahre, **für deinen Standort berechnet** (Bedeckung, Zeiten, Sichtbarkeit).
 
 **3D**
-- **Himmelskuppel & Haus**: dein Haus (Satteldach, Größe, Ausrichtung und PV-Module einstellbar) unter einer Halbkugel mit Sonne, Mond, sichtbaren Planeten und hellen Sternen, mit Schattenwurf und den Sonnenbahnen für heute, Sommer und Winter. Ziehen zum Drehen, Regler für die Uhrzeit.
-- **Echtes Haus importieren**: amtliche LoD2-Gebäudemodelle (CityJSON) oder eigenes OBJ-Modell.
+- **Himmelskuppel & Haus**: dein Haus (Satteldach, Größe, Ausrichtung und PV-Module einstellbar) unter einer Halbkugel mit Sonne, Mond, sichtbaren Planeten und hellen Sternen, mit Schattenwurf und den Sonnenbahnen für heute, Sommer und Winter. Ziehen zum Drehen, Mausrad / zwei Finger zum Zoomen, Regler für die Uhrzeit.
+- **Echtes Haus importieren**: GLB/glTF mit Farben, amtliche LoD2-Gebäudemodelle (CityJSON) oder OBJ (+ MTL).
 
 **Jahr**
 - **Tageslänge im Jahresverlauf** mit Markierung für heute.
@@ -125,10 +125,11 @@ language: auto
 
 ```yaml
 house_source: file
-house_model: /local/haus.json    # CityJSON (LoD2) oder /local/haus.obj
+house_model: /local/haus.glb     # GLB/glTF, CityJSON (LoD2) oder OBJ
 model_rotation: 0                # Grad im Uhrzeigersinn, um Norden auszurichten (v. a. OBJ)
 model_scale: 1                   # 1 = Meter, 0.01 = Zentimeter
 model_up: auto                   # nur OBJ: auto | y (Blender-Standard) | z (SketchUp/CAD)
+model_zoom: 1                    # Start-Zoom der 3D-Ansicht
 pv_flat_roofs: false             # PV auch auf Flachdächern zeichnen
 ```
 
@@ -140,7 +141,9 @@ https://ogc-api.nrw.de/3dg/v1/collections/building/items?f=cityjson&bbox=<lon-0.
 
 Das Ergebnis als `/config/www/haus.json` speichern. CityGML-Dateien lassen sich mit den [citygml-tools](https://github.com/citygml4j/citygml-tools) in CityJSON umwandeln.
 
-**OBJ (eigenes Modell)** – Export aus Blender, SketchUp, SweetHome3D usw. Bauteile oder Materialien mit `Dach`/`roof` im Namen werden Dach, mit `PV`/`Solar`/`Panel`/`Modul` PV-Module; alles andere wird anhand der Neigung eingeordnet. Einheit sollte Meter sein (sonst `model_scale`), das Modell ungefähr um das Haus zentriert.
+**GLB / glTF (empfohlen für eigene Modelle)** – Export aus Blender, SketchUp, SweetHome3D, three.js usw. Die Farben aller Bauteile kommen aus den Materialien, flache Teile auf Bodenhöhe (Rasen, Wege) werden als Bodenbelag gezeichnet. glTF muss eingebettete Buffer haben (sonst GLB nehmen). Y oben, Norden = −Z.
+
+**OBJ (eigenes Modell)** – Export aus Blender, SketchUp, SweetHome3D usw. Bauteile oder Materialien mit `Dach`/`roof` im Namen werden Dach, mit `PV`/`Solar`/`Panel`/`Modul` PV-Module; alles andere wird anhand der Neigung eingeordnet. Liegt die im OBJ genannte `.mtl`-Datei (`mtllib`) im selben Ordner, werden ihre Farben (`Kd`) übernommen. Einheit sollte Meter sein (sonst `model_scale`), das Modell ungefähr um das Haus zentriert.
 
 **Einfaches JSON** – eine Liste von Flächen `[{ "t": "r"|"w"|"pv", "p": [[x, y, z], …] }, …]` in Metern (x = Ost, y = Nord, z = oben).
 

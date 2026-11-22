@@ -9,8 +9,14 @@ function loadModelText(url, onDone) {
     slot = { state: 'loading', listeners: new Set() };
     MODELS.set(url, slot);
     fetch(url, { cache: 'no-cache' })
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
-      .then((txt) => { slot.text = txt; slot.state = 'ok'; })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+      .then((buf) => {
+        slot.buf = buf;
+        const head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+        slot.binary = head[0] === 0x67 && head[1] === 0x6c && head[2] === 0x54 && head[3] === 0x46; // 'glTF'
+        if (!slot.binary) slot.text = new TextDecoder('utf-8').decode(buf);
+        slot.state = 'ok';
+      })
       .catch((e) => { slot.error = String(e.message || e); slot.state = 'error'; })
       .finally(() => { slot.listeners.forEach((fn) => { try { fn(); } catch (e) { /* */ } }); slot.listeners.clear(); });
   }
@@ -115,7 +121,22 @@ function parseCityJSON(text, lat, lon) {
 }
 
 /* ---------- OBJ -------------------------------------------------------------- */
-function parseOBJ(text, up) {
+function parseMTL(text) {
+  const out = {};
+  let cur = null;
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const p = raw.trim().split(/\s+/);
+    if (p[0] === 'newmtl') cur = p.slice(1).join(' ');
+    else if (p[0] === 'Kd' && cur) out[cur] = rgb2hex([Number(p[1]), Number(p[2]), Number(p[3])].map((v) => clamp(v, 0, 1) * 255));
+  }
+  return out;
+}
+function objMtlLib(text) {
+  const m = /^mtllib\s+(.+)$/m.exec(text.slice(0, 5000));
+  return m ? m[1].trim() : null;
+}
+
+function parseOBJ(text, up, mtlColors) {
   const V = [];
   const faces = [];
   let group = '', mtl = '';
@@ -129,7 +150,7 @@ function parseOBJ(text, up) {
     else if (key === 'usemtl') mtl = parts.slice(1).join(' ');
     else if (key === 'f') {
       const idx = parts.slice(1).map((p) => { const i = parseInt(p.split('/')[0], 10); return i < 0 ? V.length + i : i - 1; });
-      if (idx.length >= 3) faces.push({ idx, name: `${group} ${mtl}`.toLowerCase() });
+      if (idx.length >= 3) faces.push({ idx, name: `${group} ${mtl}`.toLowerCase(), c: mtlColors ? mtlColors[mtl] : undefined });
     }
   }
   if (!faces.length) throw new Error('Keine Flächen in der OBJ-Datei');
@@ -149,29 +170,139 @@ function parseOBJ(text, up) {
     if (/pv|solar|panel|modul/.test(f.name)) t = 'pv';
     else if (/roof|dach/.test(f.name)) t = 'r';
     else if (/ground|boden|floor/.test(f.name)) t = 'g';
-    return { t, p: pts };
+    return f.c ? { t, p: pts, c: f.c } : { t, p: pts };
   }).filter((f) => f.p.length >= 3);
+}
+
+/* ---------- glTF / GLB -------------------------------------------------------- */
+function mat4Mul(a, b) {
+  const o = new Array(16);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    o[j * 4 + i] = a[i] * b[j * 4] + a[4 + i] * b[j * 4 + 1] + a[8 + i] * b[j * 4 + 2] + a[12 + i] * b[j * 4 + 3];
+  }
+  return o;
+}
+function nodeMatrix(n) {
+  if (n.matrix) return n.matrix.slice();
+  const [tx, ty, tz] = n.translation || [0, 0, 0];
+  const [qx, qy, qz, qw] = n.rotation || [0, 0, 0, 1];
+  const [sx, sy, sz] = n.scale || [1, 1, 1];
+  return [
+    (1 - 2 * (qy * qy + qz * qz)) * sx, 2 * (qx * qy + qz * qw) * sx, 2 * (qx * qz - qy * qw) * sx, 0,
+    2 * (qx * qy - qz * qw) * sy, (1 - 2 * (qx * qx + qz * qz)) * sy, 2 * (qy * qz + qx * qw) * sy, 0,
+    2 * (qx * qz + qy * qw) * sz, 2 * (qy * qz - qx * qw) * sz, (1 - 2 * (qx * qx + qy * qy)) * sz, 0,
+    tx, ty, tz, 1,
+  ];
+}
+const lin2srgb = (v) => Math.round(255 * clamp(v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055, 0, 1));
+
+function parseGLTF(json, bin) {
+  const buffers = (json.buffers || []).map((b, i) => {
+    if (i === 0 && bin && !b.uri) return bin;
+    if (b.uri && b.uri.startsWith('data:')) {
+      const raw = atob(b.uri.split(',')[1]);
+      const u = new Uint8Array(raw.length); for (let k = 0; k < raw.length; k++) u[k] = raw.charCodeAt(k);
+      return u.buffer;
+    }
+    throw new Error('Externe .bin-Dateien werden nicht unterstützt – bitte als .glb exportieren');
+  });
+  const read = (ai) => {
+    const acc = json.accessors[ai], bv = json.bufferViews[acc.bufferView];
+    const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[acc.type];
+    const Ctor = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }[acc.componentType];
+    const stride = bv.byteStride || comps * Ctor.BYTES_PER_ELEMENT;
+    const base = (bv.byteOffset || 0) + (acc.byteOffset || 0);
+    const dv = new DataView(buffers[bv.buffer]);
+    const get = { 5120: 'getInt8', 5121: 'getUint8', 5122: 'getInt16', 5123: 'getUint16', 5125: 'getUint32', 5126: 'getFloat32' }[acc.componentType];
+    const out = new Array(acc.count);
+    for (let i = 0; i < acc.count; i++) {
+      const e = [];
+      for (let c = 0; c < comps; c++) e.push(dv[get](base + i * stride + c * Ctor.BYTES_PER_ELEMENT, true));
+      out[i] = comps === 1 ? e[0] : e;
+    }
+    return out;
+  };
+  const faces = [];
+  const matColor = (mi) => {
+    const m = mi != null ? json.materials?.[mi] : null;
+    const f = m?.pbrMetallicRoughness?.baseColorFactor || [0.8, 0.8, 0.8, 1];
+    return { c: rgb2hex([lin2srgb(f[0]), lin2srgb(f[1]), lin2srgb(f[2])]), name: String(m?.name || '').toLowerCase() };
+  };
+  const visit = (ni, parent) => {
+    const n = json.nodes[ni];
+    const M = mat4Mul(parent, nodeMatrix(n));
+    if (n.mesh != null) {
+      for (const prim of json.meshes[n.mesh].primitives || []) {
+        if ((prim.mode ?? 4) !== 4 || prim.attributes?.POSITION == null) continue;
+        const pos = read(prim.attributes.POSITION).map(([x, y, z]) => [
+          M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]]);
+        const idx = prim.indices != null ? read(prim.indices) : pos.map((_, i) => i);
+        const { c, name } = matColor(prim.material);
+        const t = /pv|solar|panel|modul/.test(name) ? 'pv' : /roof|dach/.test(name) ? 'r' : '';
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          // glTF: Y oben, Norden = -Z
+          const p = [idx[i], idx[i + 1], idx[i + 2]].map((k) => [pos[k][0], -pos[k][2], pos[k][1]]);
+          faces.push({ t, c, p });
+        }
+      }
+    }
+    (n.children || []).forEach((ch) => visit(ch, M));
+  };
+  const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const scene = json.scenes?.[json.scene ?? 0];
+  (scene ? scene.nodes : json.nodes.map((_, i) => i)).forEach((ni) => visit(ni, I));
+  if (!faces.length) throw new Error('Keine Dreiecke im glTF-Modell');
+  return faces;
+}
+function parseGLB(buf) {
+  const dv = new DataView(buf);
+  let off = 12, json = null, bin = null;
+  while (off < buf.byteLength) {
+    const len = dv.getUint32(off, true), type = dv.getUint32(off + 4, true);
+    const chunk = buf.slice(off + 8, off + 8 + len);
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(chunk));
+    else if (type === 0x004e4942) bin = chunk;
+    off += 8 + len;
+  }
+  if (!json) throw new Error('Ungültige GLB-Datei');
+  return parseGLTF(json, bin);
 }
 
 /** Text → Flächenliste {t:'r'|'w'|'g'|'pv'|'', p:[[x,y,z]…]} in lokalen Metern */
 function parseHouseModel(text, url, opts) {
-  const head = text.slice(0, 2000).trim();
   let faces;
+  if (opts.buf && opts.binary) {
+    faces = parseGLB(opts.buf);
+    return normalizeFaces(faces, opts);
+  }
+  const head = text.slice(0, 2000).trim();
+  if (/\.gltf(\?|$)/i.test(url) || (head.startsWith('{') && head.includes('"asset"') && head.includes('"accessors"'))) {
+    return normalizeFaces(parseGLTF(JSON.parse(text), null), opts);
+  }
   if (/\.obj(\?|$)/i.test(url) || /^(#|v |o |g |mtllib)/m.test(head) && !head.startsWith('{') && !head.startsWith('[')) {
-    faces = parseOBJ(text, opts.up);
+    faces = parseOBJ(text, opts.up, opts.mtl ? parseMTL(opts.mtl) : null);
   } else {
     const first = head.startsWith('[') ? null : (() => { try { return JSON.parse(text); } catch (e) { return null; } })();
     if (Array.isArray(first) || (head.startsWith('[') && Array.isArray(JSON.parse(text)))) faces = JSON.parse(text);
     else if (first && Array.isArray(first.faces)) faces = first.faces;
     else faces = parseCityJSON(text, opts.lat, opts.lon);
   }
+  return normalizeFaces(faces, opts);
+}
+
+function normalizeFaces(faces, opts) {
   // Skalierung, Drehung, Zentrierung, Boden auf 0
   const sc = Number(opts.scale) || 1, rot = (Number(opts.rotation) || 0) * RAD;
   const cr = Math.cos(rot), sr = Math.sin(rot);
   faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [(x * cr + y * sr) * sc, (-x * sr + y * cr) * sc, z * sc]); });
   const all = faces.flatMap((f) => f.p);
-  const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), zs = all.map((p) => p[2]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2, z0 = Math.min(...zs);
+  const z0 = all.reduce((m, p) => Math.min(m, p[2]), Infinity);
+  // Zentrieren auf Bauteile oberhalb des Bodens (große Bodenplatten/Rasenflächen ignorieren)
+  const raised = faces.filter((f) => f.p.some((p) => p[2] - z0 > 0.5)).flatMap((f) => f.p);
+  const use = raised.length ? raised : all;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const p of use) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   faces.forEach((f) => { f.p = f.p.map(([x, y, z]) => [x - cx, y - cy, z - z0]); });
   return faces;
 }
