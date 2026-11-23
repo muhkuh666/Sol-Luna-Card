@@ -101,6 +101,9 @@ class SolLunaCard extends HTMLElement {
       const cv = e.composedPath().find((n) => n.classList && n.classList.contains('c3d'));
       if (!cv) return;
       e.preventDefault();
+      this._lastWheel = Date.now();
+      clearTimeout(this._wheelEnd);
+      this._wheelEnd = setTimeout(() => this._draw3d(), 300);
       this._zoom3d = clamp((this._zoom3d ?? (Number(this._config.model_zoom) || 1)) * Math.exp(-e.deltaY * 0.0015), 0.4, 6);
       if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
     }, { passive: false });
@@ -143,10 +146,10 @@ class SolLunaCard extends HTMLElement {
         if (!this._raf3) this._raf3 = requestAnimationFrame(() => { this._raf3 = null; this._draw3d(); });
       }
     });
-    const endPtr = (e) => { this._ptrs?.delete(e.pointerId); if (this._ptrs && this._ptrs.size < 2) this._pinch = null; };
+    const endPtr = (e) => { this._ptrs?.delete(e.pointerId); if (this._ptrs && this._ptrs.size < 2 && this._pinch) { this._pinch = null; this._draw3d(); } };
     this.addEventListener('pointerup', endPtr);
     this.addEventListener('pointercancel', endPtr);
-    const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } } };
+    const end3 = (e) => { if (this._rot3d && e.pointerId === this._rot3d.id) { this._rot3d = null; try { this.releasePointerCapture(e.pointerId); } catch (x) { /* */ } this._draw3d(); } };
     this.addEventListener('pointerup', end3);
     this.addEventListener('pointercancel', end3);
     this.addEventListener('pointermove', (e) => { if (this._scrubbing && e.pointerId === this._scrubPointer) this._scrubTo(e.clientX); });

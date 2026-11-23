@@ -186,6 +186,8 @@ Object.assign(SolLunaCard.prototype, {
     g.clearRect(0, 0, W, H);
 
     const time = this._t3(D);
+    // Während Drehen/Zoomen großer Modelle vereinfacht zeichnen (flüssiger)
+    const fast = !!(this._rot3d || this._pinch) || (Date.now() - (this._lastWheel || 0) < 250);
     const sun = Astro.sun(time, D.lat, D.lng);
     const moon = Astro.moon(time, D.lat, D.lng);
     const day = clamp((sun.alt + 6) / 12, 0, 1);
@@ -265,7 +267,7 @@ Object.assign(SolLunaCard.prototype, {
       for (const gf of model.ground) {
         g.fillStyle = shadeHex(gf.c, 0.45 + 0.55 * day);
         line3(gf.pts, true); g.fill();
-        g.strokeStyle = g.fillStyle; g.lineWidth = 0.6; g.stroke();
+        if (!fast) { g.strokeStyle = g.fillStyle; g.lineWidth = 0.6; g.stroke(); }
       }
       g.restore();
     }
@@ -330,7 +332,7 @@ Object.assign(SolLunaCard.prototype, {
       g.save();
       poly(gp); g.closePath(); g.clip();
       g.beginPath();
-      if (model) {
+      if (model && !fast) {
         for (const fc of faces) {
           const q = fc.pts.map(proj);
           q.forEach((pt, i) => (i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])));
@@ -338,7 +340,7 @@ Object.assign(SolLunaCard.prototype, {
         }
       } else {
         const pts = [];
-        faces.forEach((fc) => fc.pts.forEach((p) => { const d = p[2] / tanA; pts.push([p[0] + sx * d, p[1] + sy * d]); }));
+        faces.forEach((fc, i) => { if (!fast || i % 3 === 0) fc.pts.forEach((p) => { const d = p[2] / tanA; pts.push([p[0] + sx * d, p[1] + sy * d]); }); });
         convexHull(pts).map(([x, y]) => P([x, y, 0])).forEach((pt, i) => (i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])));
         g.closePath();
       }
@@ -401,7 +403,7 @@ Object.assign(SolLunaCard.prototype, {
       g.fillStyle = shadeHex(base, amb + 0.75 * light(fc.n));
       line3(fc.pts, true); g.fill();
       if (fc.pts.length > 3 && vis.length < 400) { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke(); }
-      else if (vis.length < 2500) { g.strokeStyle = g.fillStyle; g.lineWidth = 0.7; g.stroke(); }
+      else if (vis.length < 2500 && !fast) { g.strokeStyle = g.fillStyle; g.lineWidth = 0.7; g.stroke(); }
       // PV-Module auf der Hauptdachfläche
       if (fc.kind === 'roof' && fc.main && c.show_pv) {
         const lerp3 = (a, b, x) => V3.add(a, V3.mul(V3.sub(b, a), x));

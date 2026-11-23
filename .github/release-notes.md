@@ -1,19 +1,12 @@
-## Sol & Luna Card 2.4 🏠🌗
+## Sol & Luna Card 2.4.2 🏠⚡
 
-### New / Neu
-- **Import your own 3D house** · **Eigenes 3D-Haus importieren** (`house_source: file`, `house_model: /local/…`)
-  - **GLB / glTF** with original colours · mit Originalfarben
-  - **LoD2 / CityJSON** – official building models, the building at your location is picked automatically · amtliche Gebäudemodelle, das Gebäude am Standort wird automatisch gewählt
-  - **OBJ** (+ colours from the `.mtl` file) · OBJ (+ Farben aus der `.mtl`-Datei)
-  - lawn and paths are drawn as ground cover, shadows per part · Rasen und Wege als Bodenbelag, Schatten pro Bauteil
-- **Zoom** in the 3D view with mouse wheel or two fingers · **Zoomen** in der 3D-Ansicht mit Mausrad oder zwei Fingern
-- New options · Neue Optionen: `model_rotation`, `model_scale`, `model_up`, `model_zoom`, `pv_flat_roofs`
+### Improved / Verbessert
+- **Smooth 3D view for large house models**: while rotating or zooming, the card draws a simplified preview and renders full detail when you let go – about 8× faster with detailed GLB models · **Flüssige 3D-Ansicht bei großen Hausmodellen**: Beim Drehen und Zoomen zeichnet die Karte vereinfacht und nach dem Loslassen wieder in voller Qualität – bei detaillierten GLB-Modellen etwa 8× schneller
 
-### Fixed / Behoben
-- After a loading error (e.g. HTTP 404) the model is retried automatically, the error shows the path · Nach einem Ladefehler wird das Modell automatisch erneut geladen, die Meldung zeigt den Pfad
-- The 3D tab always opens at the current time · Der 3D-Tab öffnet immer mit der aktuellen Uhrzeit
-
-Put model files in `/config/www` and enter them as `/local/filename`. · Modelldateien nach `/config/www` legen und als `/local/Dateiname` eintragen.
+### Also in 2.4 / Außerdem in 2.4
+- Import your own 3D house: **GLB/glTF** (with colours), **LoD2/CityJSON**, **OBJ** (+ `.mtl` colours) · Eigenes 3D-Haus importieren: GLB/glTF (mit Farben), LoD2/CityJSON, OBJ (+ Farben aus `.mtl`)
+- Zoom with mouse wheel or two fingers · Zoomen mit Mausrad oder zwei Fingern
+- Model files go to `/config/www`, enter them as `/local/filename` · Modelldateien nach `/config/www`, eintragen als `/local/Dateiname`
 
 **Install:** HACS → Custom repositories → `https://github.com/muhkuh666/Sol-Luna-Card` (type **Dashboard**)
 
