@@ -1,27 +1,59 @@
 name: Release
-
+# Erstellt automatisch Tag + Release, sobald VERSION in dist/sol-luna-card.js erhöht wird –
+# aber nur, wenn Build-Prüfung und HACS-Validierung vorher erfolgreich waren.
 on:
   push:
-    tags:
-      - "v*"
-
+    branches: [main]
+    paths:
+      - dist/sol-luna-card.js
+      - .github/release-notes.md
+      - .github/workflows/release.yml
+  workflow_dispatch:
 permissions:
   contents: write
-
 jobs:
-  release:
+  build:
+    name: Build check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create GitHub release with card file
+      - name: dist aus src neu bauen und vergleichen
+        run: |
+          python3 build.py
+          node -e "new Function(require('fs').readFileSync('dist/sol-luna-card.js','utf8'))"
+          git diff --exit-code dist/sol-luna-card.js
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: plugin
+  release:
+    needs: [build, hacs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version auslesen
+        id: v
+        run: |
+          VERSION=$(grep -oP "const VERSION = '\K[^']+" dist/sol-luna-card.js)
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release v$VERSION existiert bereits – nichts zu tun."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/sol-luna-card.js --clobber
-          else
-            gh release create "$TAG" dist/sol-luna-card.js \
-              --title "$TAG" \
-              --notes "Sol & Luna Card $TAG – Installation über HACS oder manuell: sol-luna-card.js nach /config/www/ kopieren."
-          fi
+      - name: Release erstellen
+        if: steps.v.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: ${{ steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          files: dist/sol-luna-card.js
+          body_path: .github/release-notes.md
+          make_latest: true
